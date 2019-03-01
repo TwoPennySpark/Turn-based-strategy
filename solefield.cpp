@@ -75,7 +75,7 @@ void SoleField::get_terrain_name(QString &retName)
 
 void SoleField::setImg(int randNum)
 {
-    switch (randNum) //dsaasdasdasd
+    switch (randNum)
     {
         case TERRAIN_TYPE_FOREST:
             img = new QPixmap(":/terrain/img/forest1.png");

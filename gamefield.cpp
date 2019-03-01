@@ -4,9 +4,8 @@
 #include <QHash>
 #include <QPair>
 #include <QVector>
-//#include <QApplication>
 
-extern Game* game;
+extern Game* game; //
 
 GameField::GameField(QGraphicsView *view, QWidget *parent): QGraphicsScene(parent)
 {
