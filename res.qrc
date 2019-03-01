@@ -1,0 +1,29 @@
+<RCC>
+    <qresource prefix="/unit">
+        <file>img/knight.png</file>
+        <file>img/militia.png</file>
+        <file>img/archer21.png</file>
+        <file>img/catapult.png</file>
+        <file>img/mage.png</file>
+        <file>img/elemental.png</file>
+        <file>img/dragon.png</file>
+        <file>img/dragon2.png</file>
+        <file>img/archer.png</file>
+    </qresource>
+    <qresource prefix="/terrain">
+        <file>img/green.png</file>
+        <file>img/grass00.png</file>
+        <file>img/grass03.png</file>
+        <file>img/grass04.png</file>
+        <file>img/grass27.png</file>
+        <file>img/grass28.png</file>
+        <file>img/grass_26.png</file>
+        <file>img/tree2.png</file>
+        <file>img/forest1.png</file>
+        <file>img/forest2.png</file>
+        <file>img/castle.png</file>
+        <file>img/castle1.png</file>
+        <file>img/castle2.png</file>
+        <file>img/coin.png</file>
+    </qresource>
+</RCC>
