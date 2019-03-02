@@ -59,38 +59,27 @@ GameField::~GameField()
     for (QGraphicsRectItem* rect: posMovesRects)
         delete rect;
 
-    for (auto el: castles)
+    for (auto& el: castles)
         delete el.fractionRect;
-
-    delete hud;
-    delete infoRectGroup;
-    delete curPlayerRectGroup;
-    delete unitPurchaseSceneGroup;
 
     for (int i = 0; i < gameFieldWidth; i++)
         delete[] fields[i];
     delete[] fields;
 
-//    QList<QGraphicsItem*> list = unitPurchaseSceneGroup->childItems();
-//    for (auto el: list)
-//    {
-//        if (dynamic_cast<QGraphicsRectItem*>(el) || dynamic_cast<QGraphicsPixmapItem*>(el))
-//            delete el;
-//        else if (dynamic_cast<QGraphicsTextItem*>(el))
-//            delete[] el;
-//        else
-//            qDebug() << "ELSE\n";
-//    }
+    QList<QGraphicsItem*> list = unitPurchaseSceneGroup->childItems();
+    for (auto el: list)
+        if (!dynamic_cast<QGraphicsTextItem*>(el))
+            delete el;
 
-//    delete[] nameString;
-//    delete[] costString;
-//    delete[] strengthString;
-//    delete[] speedString;
-//    delete[] attackTypeString;
-//    delete[] attackRangeString;
-//    delete[] descriptionString;
+    delete[] nameString;
+    delete[] costString;
+    delete[] strengthString;
+    delete[] speedString;
+    delete[] attackTypeString;
+    delete[] attackRangeString;
+    delete[] descriptionString;
 
-    qDebug() << "GAMEFIELD DESTRUCTOR\n";
+    delete unitPurchaseSceneGroup;
 }
 
 void GameField::keyPressEvent(QKeyEvent *event)
@@ -558,16 +547,16 @@ void GameField::prepare_unit_purchase_scene()
     attackRangeString = new QGraphicsTextItem[UNIT_TYPE_MAX];
     descriptionString = new QGraphicsTextItem[UNIT_TYPE_MAX];
 
-    QGraphicsItemGroup *infoStringsGroup = new QGraphicsItemGroup(unitPurchaseSceneGroup);
+//    QGraphicsItemGroup *infoStringsGroup = new QGraphicsItemGroup(unitPurchaseSceneGroup);
     for (int i = 0; i < UNIT_TYPE_MAX; i++)
     {
-        infoStringsGroup->addToGroup(&nameString[i]);
-        infoStringsGroup->addToGroup(&costString[i]);
-        infoStringsGroup->addToGroup(&strengthString[i]);
-        infoStringsGroup->addToGroup(&speedString[i]);
-        infoStringsGroup->addToGroup(&attackTypeString[i]);
-        infoStringsGroup->addToGroup(&attackRangeString[i]);
-        infoStringsGroup->addToGroup(&descriptionString[i]);
+        unitPurchaseSceneGroup->addToGroup(&nameString[i]);
+        unitPurchaseSceneGroup->addToGroup(&costString[i]);
+        unitPurchaseSceneGroup->addToGroup(&strengthString[i]);
+        unitPurchaseSceneGroup->addToGroup(&speedString[i]);
+        unitPurchaseSceneGroup->addToGroup(&attackTypeString[i]);
+        unitPurchaseSceneGroup->addToGroup(&attackRangeString[i]);
+        unitPurchaseSceneGroup->addToGroup(&descriptionString[i]);
     }
 //    unitPurchaseSceneGroup->addToGroup(infoStringsGroup);
     QPixmap i(":/terrain/img/coin.png");
@@ -782,7 +771,7 @@ SoleField *GameField::get_marked_field()
     return &fields[mark.get_coord_x()][mark.get_coord_y()];
 }
 
-Unit *GameField::get_marked_field_unit()
+Unit *GameField:: get_marked_field_unit()
 {
     return fields[mark.get_coord_x()][mark.get_coord_y()].get_unit();
 }

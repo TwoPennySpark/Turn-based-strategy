@@ -2,19 +2,45 @@
 
 MarkField::MarkField()
 {
-    rect1 = new QGraphicsRectItem(10, 10, 10, 10, this);
-    rect2 = new QGraphicsRectItem(80, 10, 10, 10, this);
-    rect3 = new QGraphicsRectItem(10, 80, 10, 10, this);
-    rect4 = new QGraphicsRectItem(80, 80, 10, 10, this);
+    QVector<QPointF> markPoints;
+    markPoints << QPointF(1,1) << QPointF(1,3) << QPointF(3,3)
+               << QPointF(3,2) << QPointF(2,2) << QPointF(2,1);
+
+    int scaleBy = 5;
+    for (auto& point: markPoints)
+        point *= scaleBy;
+
+    QPolygonF tempPolygon(markPoints);
+
+    QGraphicsPolygonItem* polygon1 = new QGraphicsPolygonItem(tempPolygon, this);
+    QGraphicsPolygonItem* polygon2 = new QGraphicsPolygonItem(tempPolygon, this);
+    QGraphicsPolygonItem* polygon3 = new QGraphicsPolygonItem(tempPolygon, this);
+    QGraphicsPolygonItem* polygon4 = new QGraphicsPolygonItem(tempPolygon, this);
+
+    polygon1->setTransformOriginPoint(polygon1->boundingRect().center());
+    polygon1->setRotation(90);
+    polygon1->setPos(0, 0);
+
+    polygon2->setTransformOriginPoint(polygon2->boundingRect().center());
+    polygon2->setRotation(180);
+    polygon2->setPos(80, 0);
+
+    polygon3->setTransformOriginPoint(polygon2->boundingRect().center());
+    polygon3->setRotation(270);
+    polygon3->setPos(80, 80);
+
+    polygon4->setTransformOriginPoint(polygon2->boundingRect().center());
+    polygon4->setRotation(0);
+    polygon4->setPos(0, 80);
 
     QBrush brush;
     brush.setStyle(Qt::SolidPattern);
     brush.setColor(Qt::white);
 
-    rect1->setBrush(brush);
-    rect2->setBrush(brush);
-    rect3->setBrush(brush);
-    rect4->setBrush(brush);
+    polygon1->setBrush(brush);
+    polygon2->setBrush(brush);
+    polygon3->setBrush(brush);
+    polygon4->setBrush(brush);
 
     markCoord_X = 0;
     markCoord_Y = 0;
@@ -27,10 +53,10 @@ MarkField::MarkField()
 
 MarkField::~MarkField()
 {
-    delete rect1;
-    delete rect2;
-    delete rect3;
-    delete rect4;
+    delete polygon1;
+    delete polygon2;
+    delete polygon3;
+    delete polygon4;
 }
 
 void MarkField::move(int field_x, int field_y)

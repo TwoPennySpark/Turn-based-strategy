@@ -77,7 +77,7 @@ private:
 //    player *curPlayer;
     QVector<player*> players;
     void create_players();
-
+int *a;
     cur_player_state state;
 
     QGraphicsView *view;

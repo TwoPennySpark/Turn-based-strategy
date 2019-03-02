@@ -186,7 +186,6 @@ void Game::show_player_won_msg_box(const QString &playerName)
     QMessageBox gameOverBox;
     gameOverBox.setText(QString("Player \"%1\" won!").arg(playerName));
     gameOverBox.addButton(QMessageBox::Close);
-    //    gameOverBox.setFixedSize(400, 200);
     gameOverBox.move(view->width()/2  - gameOverBox.width()/2,
                 view->height()/2 - gameOverBox.height()/2);
     gameOverBox.exec();
