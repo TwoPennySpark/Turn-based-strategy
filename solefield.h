@@ -41,7 +41,7 @@ public:
     int get_defense_bonus();
     void get_terrain_name(QString& retName);
 
-    void setImg(int randNum);
+    void setImg(terrain_type randNum);
 private:
     Unit* unit;
     QPixmap* img;

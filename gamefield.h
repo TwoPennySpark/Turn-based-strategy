@@ -12,6 +12,8 @@
 #include <QBrush>
 #include <QPushButton>
 #include <QMessageBox>
+#include <fstream>
+#include <iostream>
 
 const qreal gameFieldStart_X = 0;
 const qreal gameFieldStart_Y = 0;
@@ -37,7 +39,7 @@ class GameField: public QGraphicsScene
 
 public:    
     GameField(QGraphicsView *view, QWidget* parent = nullptr);
-    ~GameField();
+    ~GameField() override;
 
     void keyPressEvent(QKeyEvent* event) override;
 
@@ -70,11 +72,17 @@ public:
     void check_if_player_has_any_castles_left(player_color player);
     void set_countdown(player_color player);
 
+    void parse_map_file();
+
     void next_turn();
 
-    SoleField fields[FIELD_NUM_X][FIELD_NUM_Y];
+//    SoleField fields[FIELD_NUM_X][FIELD_NUM_Y];
+    SoleField** fields;
 
 private:
+    int gameFieldWidth;
+    int gameFieldHeight;
+
     SoleField* get_marked_field();
     Unit* get_marked_field_unit();
 

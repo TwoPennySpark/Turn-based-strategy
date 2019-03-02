@@ -15,7 +15,11 @@ Game::Game()
 Game::~Game()
 {
     delete view;
-//    delete players;
+
+    delete gameField;
+
+    for (auto player: players)
+        delete player;
 }
 
 void Game::start()
@@ -162,7 +166,7 @@ void Game::delete_player(player_color player)
     if (playersLeft == 1)
     {
         next_turn();
-        show_player_won_msg_box(players[static_cast<int>(player)]->name);
+        show_player_won_msg_box(players[curPlayerIndex]->name);
     }
 }
 
@@ -186,6 +190,8 @@ void Game::show_player_won_msg_box(const QString &playerName)
     gameOverBox.move(view->width()/2  - gameOverBox.width()/2,
                 view->height()/2 - gameOverBox.height()/2);
     gameOverBox.exec();
+
+    delete gameField;
 
     QCoreApplication::quit();
 }

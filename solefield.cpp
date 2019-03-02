@@ -4,12 +4,6 @@
 
 SoleField::SoleField()
 {
-//    if (randNum)
-//        img = new QPixmap(":/units/img/white1.png");
-//    else
-//        img = new QPixmap(":/units/img/green.png");
-//    QPixmap newImg = img->scaled(QSize(SOLE_SQUARE_FIELD_SIZE, SOLE_SQUARE_FIELD_SIZE), Qt::KeepAspectRatio);
-//    setPixmap(newImg);
     unit = nullptr;
 }
 
@@ -73,9 +67,9 @@ void SoleField::get_terrain_name(QString &retName)
     }
 }
 
-void SoleField::setImg(int randNum)
+void SoleField::setImg(terrain_type fieldType)
 {
-    switch (randNum)
+    switch (fieldType)
     {
         case TERRAIN_TYPE_FOREST:
             img = new QPixmap(":/terrain/img/forest1.png");
@@ -84,7 +78,7 @@ void SoleField::setImg(int randNum)
             defenseBonus = 20;
             break;
         case TERRAIN_TYPE_GRASSFIELD:
-            img = new QPixmap(":/terrain/img/grass28.png");
+            img = new QPixmap(":/terrain/img/grass00.png");
             terrainType = TERRAIN_TYPE_GRASSFIELD;
             speedModificator = 1;
             defenseBonus = 0;
@@ -98,6 +92,7 @@ void SoleField::setImg(int randNum)
         default:
             break;
     }
-    QPixmap newImg = img->scaled(QSize(SOLE_SQUARE_FIELD_SIZE, SOLE_SQUARE_FIELD_SIZE), Qt::KeepAspectRatio);
+    QPixmap newImg = img->scaled(QSize(SOLE_SQUARE_FIELD_SIZE, SOLE_SQUARE_FIELD_SIZE),
+                                 Qt::KeepAspectRatio);
     setPixmap(newImg);
 }

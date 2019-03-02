@@ -5,7 +5,7 @@
 #include <QPair>
 #include <QVector>
 
-extern Game* game; //
+extern Game* game;
 
 GameField::GameField(QGraphicsView *view, QWidget *parent): QGraphicsScene(parent)
 {
@@ -17,8 +17,6 @@ GameField::GameField(QGraphicsView *view, QWidget *parent): QGraphicsScene(paren
     viewPointY = 0;
     gameFieldView = view;
 
-    create_gamefield();
-
     addItem(&mark);
 
     prepare_hud();
@@ -26,9 +24,9 @@ GameField::GameField(QGraphicsView *view, QWidget *parent): QGraphicsScene(paren
     prepare_unit_purchase_scene();
     prepare_cur_player_rect();
 
-    view->show();
+    create_gamefield();
 
-//    update_hud();
+    view->show();
 
     horizontalBar = view->horizontalScrollBar();
     verticalBar   = view->verticalScrollBar();
@@ -58,16 +56,47 @@ GameField::GameField(QGraphicsView *view, QWidget *parent): QGraphicsScene(paren
 
 GameField::~GameField()
 {
-//    delete infoRect;
+    for (QGraphicsRectItem* rect: posMovesRects)
+        delete rect;
 
-    for (int i = 0; i < posMovesRects.size(); i++)
-        delete posMovesRects[i];
+    for (auto el: castles)
+        delete el.fractionRect;
+
+    delete hud;
+    delete infoRectGroup;
+    delete curPlayerRectGroup;
+    delete unitPurchaseSceneGroup;
+
+    for (int i = 0; i < gameFieldWidth; i++)
+        delete[] fields[i];
+    delete[] fields;
+
+//    QList<QGraphicsItem*> list = unitPurchaseSceneGroup->childItems();
+//    for (auto el: list)
+//    {
+//        if (dynamic_cast<QGraphicsRectItem*>(el) || dynamic_cast<QGraphicsPixmapItem*>(el))
+//            delete el;
+//        else if (dynamic_cast<QGraphicsTextItem*>(el))
+//            delete[] el;
+//        else
+//            qDebug() << "ELSE\n";
+//    }
+
+//    delete[] nameString;
+//    delete[] costString;
+//    delete[] strengthString;
+//    delete[] speedString;
+//    delete[] attackTypeString;
+//    delete[] attackRangeString;
+//    delete[] descriptionString;
+
+    qDebug() << "GAMEFIELD DESTRUCTOR\n";
 }
 
 void GameField::keyPressEvent(QKeyEvent *event)
 {
     static QHash<QPair<int, int>, field_info> possibleMovements;
-
+    game->show_player_won_msg_box("name");
     switch (event->key())
     {
         case (Qt::Key_W):
@@ -667,6 +696,7 @@ void GameField::set_new_castle_owner(QPair<int, int> castleCoord, player_color n
         if (game->is_player_losing(newOwner))
             game->set_player_countdown(newOwner, false);
     }
+    update_hud();
 }
 
 void GameField::check_if_player_has_any_castles_left(player_color player)
@@ -676,6 +706,52 @@ void GameField::check_if_player_has_any_castles_left(player_color player)
             return;
 
     game->set_player_countdown(player, true);
+}
+
+void GameField::parse_map_file()
+{
+    std::ifstream mapFile;
+    mapFile.open("map.txt");
+    std::string line;
+
+    if (!mapFile.is_open())
+    {
+        qDebug() << "[-]Can't open map file\n";
+        return;
+    }
+
+    // first line should be like this: <width,height>
+    getline(mapFile, line);
+    auto openBracketPos  = line.rfind('<');
+    auto closeBracketPos = line.rfind('>');
+    auto firstCommaPos = line.rfind(',');
+    gameFieldWidth  = std::stoi(line.substr(openBracketPos+1, firstCommaPos-1));
+    gameFieldHeight = std::stoi(line.substr(firstCommaPos+1, closeBracketPos-1));
+
+    fields = new SoleField*[gameFieldWidth];
+    for (int i = 0; i < gameFieldWidth; i++)
+        fields[i] = new SoleField[gameFieldHeight];
+
+    while (std::getline(mapFile, line))
+    {
+        auto commaPos = line.rfind(',');
+        auto semicolonPos = line.rfind(':');
+        int coordX = std::stoi(line.substr(0, commaPos));
+        int coordY = std::stoi(line.substr(commaPos+1, semicolonPos-2));
+        terrain_type tType = static_cast<terrain_type>(std::stoi(line.substr(semicolonPos+1)));
+        //qDebug() << "[" << coordX << ":" << coordY << "]:" << tType << endl;
+
+        fields[coordX][coordY].setImg(tType);
+
+        fields[coordX][coordY].setPos(coordX*SOLE_SQUARE_FIELD_SIZE, coordY*SOLE_SQUARE_FIELD_SIZE);
+        this->addItem(&fields[coordX][coordY]);
+
+//        QGraphicsTextItem *text  = new QGraphicsTextItem;
+//        text->setPlainText(QString("%1:%2").arg(QString::number(coordX), QString::number(coordY)));
+//        text->setPos(fields[coordX][coordY].x()+10, fields[coordX][coordY].y()+10);
+//        text->setZValue(0.75);
+//        addItem(text);
+    }
 }
 
 void GameField::next_turn()
@@ -802,42 +878,17 @@ void GameField::prepare_cur_player_rect()
 
 void GameField::create_gamefield()
 {
-    qreal x = gameFieldStart_X;
-    qreal y = gameFieldStart_Y;
+    parse_map_file();
 
-    int randNum = 0; // del
-    time_t t;
-    srand((unsigned)time(&t));
-
-    for (int i = 0; i < FIELD_NUM_X; i++)
-    {
-        for (int j = 0; j < FIELD_NUM_Y; j++)
-        {
-            randNum = rand() % 2 + 1; // del
-            fields[i][j].setImg(randNum);
-
-            fields[i][j].setPos(x, y);
-            this->addItem(&fields[i][j]);
-            y += SOLE_SQUARE_FIELD_SIZE;
-
-            QGraphicsTextItem *text  = new QGraphicsTextItem;
-            text->setPlainText(QString("%1:%2").arg(QString::number(i), QString::number(j)));
-            text->setPos(fields[i][j].x()+10, fields[i][j].y()+10);
-            text->setZValue(0.75);
-            addItem(text);
-        }
-        y = gameFieldStart_Y;
-        x += SOLE_SQUARE_FIELD_SIZE;
-    }
-    fields[1][1].setImg(3);
+    fields[1][1].setImg(TERRAIN_TYPE_CASTLE);
     castles.insert(qMakePair(1, 1), (real_estate){PLAYER_NONE, new QGraphicsRectItem(fields[1][1].x(), fields[1][1].y(), 15, 15)});
-    fields[1][5].setImg(3);
+    fields[1][5].setImg(TERRAIN_TYPE_CASTLE);
     castles.insert(qMakePair(1, 5), (real_estate){PLAYER_NONE, new QGraphicsRectItem(fields[1][5].x(), fields[1][5].y(), 15, 15)});
-    fields[5][1].setImg(3);
+    fields[5][1].setImg(TERRAIN_TYPE_CASTLE);
     castles.insert(qMakePair(5, 1), (real_estate){PLAYER_NONE, new QGraphicsRectItem(fields[5][1].x(), fields[5][1].y(), 15, 15)});
-    fields[5][5].setImg(3);
+    fields[5][5].setImg(TERRAIN_TYPE_CASTLE);
     castles.insert(qMakePair(5, 5), (real_estate){PLAYER_NONE, new QGraphicsRectItem(fields[5][5].x(), fields[5][5].y(), 15, 15)});
-    fields[3][3].setImg(3);
+    fields[3][3].setImg(TERRAIN_TYPE_CASTLE);
     castles.insert(qMakePair(3, 3), (real_estate){PLAYER_NONE, new QGraphicsRectItem(fields[3][3].x(), fields[3][3].y(), 15, 15)});
 
     int i = 0;
@@ -858,20 +909,20 @@ void GameField::show_cur_player_rect()
     game->get_cur_player_name(curPlayerName);
 
     if (game->is_player_losing(game->get_cur_player_color()))
-        curPlayerRectText->setPlainText(QString("%1 player turn Turns before losing:%2").arg(
+        curPlayerRectText->setPlainText(QString("%1 player turn (Turns before losing:%2)").arg(
                                             curPlayerName, QString::number(game->get_turns_left(game->get_cur_player_color()))));
     else
         curPlayerRectText->setPlainText(QString("%1 player turn").arg(curPlayerName));
 
-//    curPlayerRectText->setPos(gameFieldView->width()/2  - curPlayerRectText->boundingRect().width()/2,
-//                              curPlayerRectGroup->y() + curPlayerRectGroup->boundingRect().height()/2 - curPlayerRectText->boundingRect().height()/2);
+    curPlayerRectText->setPos(gameFieldView->width()/2  - curPlayerRectText->boundingRect().width()/2*3,
+                              curPlayerRectText->y());
     if (curPlayerRectGroup->isVisible())
-        qDebug() << curPlayerRectGroup->y() << "+" << curPlayerRectGroup->boundingRect().height()/2 << "-" << curPlayerRectText->boundingRect().height()/2; //TODO
+        qDebug() << gameFieldView->width()/2 << "-" << curPlayerRectText->boundingRect().width()/2; //TODO
     curPlayerRectGroup->show();
 
     QTimer timer;
     auto localGroup = curPlayerRectGroup;
-    timer.singleShot(3000, [localGroup](){localGroup->hide();});
+    timer.singleShot(5000, [localGroup](){localGroup->hide();});
 }
 
 void GameField::update_cur_player_rect()
