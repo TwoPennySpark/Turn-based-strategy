@@ -6,6 +6,7 @@
 #include <QGraphicsView>
 #include <QScrollBar>
 #include <QApplication>
+#include <QVBoxLayout>
 #include "gamefield.h"
 
 #include <QThread>
@@ -56,14 +57,16 @@ public:
     void change_player_income(player_color player, int change);
     void change_cur_player_money_amount(int change);
 
-    bool is_player_losing(player_color player);
+    bool is_player_losing(player_color player) const;
     void set_player_countdown(player_color player, bool status);
     void decrement_countdown(player_color player);
-    int get_turns_left(player_color player);
+    int get_turns_left(player_color player) const;
     void delete_player(player_color player);
 
-    void show_player_lost_msg_box(const QString &playerName);
+    void show_player_lost_msg_box(const QString &playerName) const;
     void show_player_won_msg_box(const QString &playerName);
+
+    void show_main_menu();
 
     GameField *gameField;
 
@@ -74,13 +77,19 @@ private:
     int playersLeft;
 
     int curPlayerIndex;
-//    player *curPlayer;
     QVector<player*> players;
     void create_players();
-int *a;
+
     cur_player_state state;
 
     QGraphicsView *view;
+
+    QWidget *mainMenu;
+    QVBoxLayout *mainMenuLayout;
+    QPushButton *singlePlayerButton;
+    QPushButton *multiPlayerButton;
+signals:
+    void finished();
 };
 
 #endif // GAME_H

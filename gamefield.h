@@ -15,12 +15,6 @@
 #include <fstream>
 #include <iostream>
 
-const qreal gameFieldStart_X = 0;
-const qreal gameFieldStart_Y = 0;
-
-const int FIELD_NUM_X = 20;
-const int FIELD_NUM_Y = 15;
-
 typedef struct field_info
 {
     int minElapsedSpeed;
@@ -76,7 +70,9 @@ public:
 
     void next_turn();
 
-//    SoleField fields[FIELD_NUM_X][FIELD_NUM_Y];
+    int get_width();
+    int get_height();
+
     SoleField** fields;
 
 private:
@@ -107,7 +103,6 @@ private:
     QHash<QPair<int, int>, real_estate> castles;
     QHash<QPair<int, int>, real_estate> houses;
 
-//    QGraphicsRectItem* infoRect;
     QGraphicsItemGroup* infoRectGroup;
     QGraphicsTextItem *infoRectText;
 

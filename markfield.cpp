@@ -25,11 +25,11 @@ MarkField::MarkField()
     polygon2->setRotation(180);
     polygon2->setPos(80, 0);
 
-    polygon3->setTransformOriginPoint(polygon2->boundingRect().center());
+    polygon3->setTransformOriginPoint(polygon3->boundingRect().center());
     polygon3->setRotation(270);
     polygon3->setPos(80, 80);
 
-    polygon4->setTransformOriginPoint(polygon2->boundingRect().center());
+    polygon4->setTransformOriginPoint(polygon4->boundingRect().center());
     polygon4->setRotation(0);
     polygon4->setPos(0, 80);
 
@@ -61,7 +61,8 @@ MarkField::~MarkField()
 
 void MarkField::move(int field_x, int field_y)
 {
-    setPos(field_x * SOLE_SQUARE_FIELD_SIZE, field_y * SOLE_SQUARE_FIELD_SIZE);
+    setPos(field_x * SOLE_SQUARE_FIELD_SIZE,
+           field_y * SOLE_SQUARE_FIELD_SIZE);
     markCoord_X = field_x;
     markCoord_Y = field_y;
 }

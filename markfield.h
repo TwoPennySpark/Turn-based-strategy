@@ -22,10 +22,10 @@ private:
     int markCoord_Y;
     QPair<int, int> markCoordPair;
 
-    QGraphicsRectItem* rect1;
-    QGraphicsRectItem* rect2;
-    QGraphicsRectItem* rect3;
-    QGraphicsRectItem* rect4;
+    QGraphicsPolygonItem* polygon1;
+    QGraphicsPolygonItem* polygon2;
+    QGraphicsPolygonItem* polygon3;
+    QGraphicsPolygonItem* polygon4;
 };
 
 #endif // MARKFIELD_H

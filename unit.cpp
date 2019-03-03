@@ -288,11 +288,11 @@ void Unit::set_fraction_color()
 
 void insert_all_neighbours(QVector<QPair<int, int>>& neighbours, int x, int y, QVector<QPair<int, int>>& path)
 {
-    if (x+1 < FIELD_NUM_X && !path.contains(qMakePair(x+1, y)))
+    if (x+1 < game->gameField->get_width() && !path.contains(qMakePair(x+1, y)))
         neighbours.push_back(qMakePair(x+1, y));
     if (x-1 >= 0 && !path.contains(qMakePair(x-1, y)))
         neighbours.push_back(qMakePair(x-1, y));
-    if (y+1 < FIELD_NUM_Y && !path.contains(qMakePair(x, y+1)))
+    if (y+1 < game->gameField->get_height() && !path.contains(qMakePair(x, y+1)))
         neighbours.push_back(qMakePair(x, y+1));
     if (y-1 >= 0 && !path.contains(qMakePair(x, y-1)))
         neighbours.push_back(qMakePair(x, y-1));
@@ -418,11 +418,11 @@ void Unit::calculate_possible_attack_directions(QVector<QPair<int, int> >& possi
     possibleAttackDirections.reserve(4*attackRange);
     for (int i = 2; i <= attackRange; i++)
     {
-        if (coord_x + i < FIELD_NUM_X)
+        if (coord_x + i < game->gameField->get_width())
             possibleAttackDirections.push_back(qMakePair(coord_x + i, coord_y));
         if (coord_x - i >= 0)
             possibleAttackDirections.push_back(qMakePair(coord_x - i, coord_y));
-        if (coord_y + i < FIELD_NUM_Y)
+        if (coord_y + i < game->gameField->get_height())
             possibleAttackDirections.push_back(qMakePair(coord_x, coord_y + i));
         if (coord_y - i >= 0)
             possibleAttackDirections.push_back(qMakePair(coord_x, coord_y - i));

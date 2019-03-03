@@ -20,6 +20,9 @@ Game::~Game()
 
     for (auto player: players)
         delete player;
+
+    delete mainMenu;
+    delete mainMenuLayout;
 }
 
 void Game::start()
@@ -38,18 +41,15 @@ void Game::start()
 
 void Game::next_turn()
 {
-//    if (curPlayerIndex >= playerNum-1)
-//        curPlayerIndex = 0;
-//    curPlayerIndex >= playerNum-1 ? curPlayerIndex = 0 : curPlayerIndex++;
     curPlayerIndex = (curPlayerIndex+1) % (playerNum);
     while (players[curPlayerIndex]->turnsBeforeLosing < 0)
         curPlayerIndex = (curPlayerIndex+1) % (playerNum);
-
-    qDebug() << "CUR TURN:" << players[curPlayerIndex]->color << "\n";
 }
 
 void Game::create_players()
 {
+    mainMenu->hide();
+
     playerNum = 4;
     if (playerNum > max_player_num)
         playerNum = max_player_num;
@@ -133,7 +133,7 @@ void Game::change_cur_player_money_amount(int change)
     players[curPlayerIndex]->money += change;
 }
 
-bool Game::is_player_losing(player_color player)
+bool Game::is_player_losing(player_color player) const
 {
     return players[static_cast<int>(player)]->isLosing;
 }
@@ -153,7 +153,7 @@ void Game::decrement_countdown(player_color player)
             delete_player(players[static_cast<int>(player)]->color);
 }
 
-int Game::get_turns_left(player_color player)
+int Game::get_turns_left(player_color player) const
 {
     return players[static_cast<int>(player)]->turnsBeforeLosing;
 }
@@ -170,7 +170,7 @@ void Game::delete_player(player_color player)
     }
 }
 
-void Game::show_player_lost_msg_box(const QString& playerName)
+void Game::show_player_lost_msg_box(const QString& playerName) const
 {
     QMessageBox msgBox;
     msgBox.setText(QString("Player \"%1\" lost").arg(playerName));
@@ -190,8 +190,25 @@ void Game::show_player_won_msg_box(const QString &playerName)
                 view->height()/2 - gameOverBox.height()/2);
     gameOverBox.exec();
 
-    delete gameField;
+    this->deleteLater();
 
-    QCoreApplication::quit();
+    emit finished();
+}
+
+void Game::show_main_menu()
+{
+    mainMenu = new QWidget;
+
+    singlePlayerButton = new QPushButton("Single Player");
+    connect(singlePlayerButton, &QPushButton::clicked, this, &Game::start);
+    multiPlayerButton = new QPushButton("Multiplayer");
+
+    mainMenuLayout = new QVBoxLayout;
+    mainMenuLayout->addWidget(singlePlayerButton);
+    mainMenuLayout->addWidget(multiPlayerButton);
+
+    mainMenu->setGeometry(0, 0, 500, 500);
+    mainMenu->setLayout(mainMenuLayout);
+    mainMenu->show();
 }
 
