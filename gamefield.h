@@ -47,7 +47,6 @@ public:
 
     void update_info_rect();
     void update_info_rect_color();
-    void update_cur_player_rect();
     void update_hud();
 
     void move_view();

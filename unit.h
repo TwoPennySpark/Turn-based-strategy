@@ -81,6 +81,7 @@ typedef struct defaultUnitStats
 class Unit: public QObject, public QGraphicsItemGroup
 {
     Q_OBJECT
+
 public:
     Unit(int x, int y, unit_type t, player_color fraction_color);
     ~Unit();
@@ -88,13 +89,13 @@ public:
     int get_coord_y();
 
     void calculate_possible_movements(QHash<QPair<int, int>, field_info> &possibleMovements);
-    void calculate_possible_attack_directions(QVector<QPair<int, int> > &possibleAttackDirections);
 
     void depth_search2(QHash<QPair<int, int>, field_info> &possibleMovements, int x, int y, int fieldsPassed, QVector<QPair<int, int> > &path);
+    void width_search_for_enemies_in_attack_range(QHash<QPair<int, int>, field_info>& possibleMovements);
 
     void move_unit(qreal toPosCoord_x, qreal toPosCoord_y, int numOfPassedFields);
     void pave_the_way(int toCoord_x, int toCoord_y, int elapsedSpeed);
-    int depth_search(int x, int y, int toCoord_x, int toCoord_y, int& elapsedSpeed);
+    int depth_search_for_the_shortest_path(int x, int y, int toCoord_x, int toCoord_y, int& elapsedSpeed);
     unit_move_direction determine_direction(int to_x, int to_y);
 
     void add_fraction_rect();
@@ -104,18 +105,17 @@ public:
     unit_combat_outcome attack(Unit* enemy, int enemyFieldDefenseBonus); // TODO: change two args on SoleField* ?
 
     void reset_speed();
-    int get_speed_left();
+    int get_speed_left() const;
 
     bool is_active();
     void set_active();
     void set_inactive();
 
-    unit_attack_type get_attack_type();
+    unit_attack_type get_attack_type() const;
+    void get_name(QString& retName) const;
 
     void update_displayed_health();
     void start_damage_received_animation(int damageReceived);
-
-    void get_name(QString& retName);
 
     static const defaultUnitStats *get_record_from_default_stats_table(unit_type type);
 
@@ -153,8 +153,6 @@ private:
     unit_type type;
     unit_attack_type attackType;
     int attackRange;
-    void check_distant_fields_for_enemies(QHash<QPair<int, int>, field_info>& possibleMovements,
-                                      QVector<QPair<int, int> >& possibleAttackDirections);
 
     int speed;
     int speedLeft;

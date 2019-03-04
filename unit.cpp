@@ -25,7 +25,7 @@ const defaultUnitStats unitStatsLookupTable[UNIT_TYPE_MAX] =
     [UNIT_TYPE_KNIGHT] = {"Knight", ":/unit/img/knight.png", 3, 3, UNIT_ATTACK_TYPE_MELEE, 1, 500},
     [UNIT_TYPE_MAGE] = {"Mage", ":/unit/img/mage.png", 4, 4, UNIT_ATTACK_TYPE_RANGED, 4, 600},
     [UNIT_TYPE_WATER_ELEMENTAL] = {"Water Elemental", ":/unit/img/elemental.png", 5, 5, UNIT_ATTACK_TYPE_MELEE, 1, 750},
-    [UNIT_TYPE_CATAPULT] = {"Catapult", ":/unit/img/catapult.png", 6, 6, UNIT_ATTACK_TYPE_RANGED, 5, 800},
+    [UNIT_TYPE_CATAPULT] = {"Catapult", ":/unit/img/catapult.png", 2, 6, UNIT_ATTACK_TYPE_RANGED, 5, 800},
     [UNIT_TYPE_DRAGON] = {"Dragon", ":/unit/img/dragon2.png", 7, 7, UNIT_ATTACK_TYPE_MELEE, 1, 1000},
 };
 
@@ -96,45 +96,6 @@ int Unit::get_coord_x()
 int Unit::get_coord_y()
 {
     return coord_y;
-}
-
-void Unit::move_unit(qreal destPosCoord_x, qreal destPosCoord_y, int elapsedSpeed)
-{
-    int newCoord_x = FROM_POS_TO_GAMEFIELD_COORD(destPosCoord_x);
-    int newCoord_y = FROM_POS_TO_GAMEFIELD_COORD(destPosCoord_y);
-
-    if (elapsedSpeed > speedLeft)
-        elapsedSpeed = speedLeft;
-
-    pave_the_way(newCoord_x, newCoord_y, elapsedSpeed);
-
-    speedLeft -= elapsedSpeed;
-
-    if (speedLeft <= 0)
-        active = false;
-
-//    setPos(toPosCoord_x, toPosCoord_y);
-    coord_x = newCoord_x;
-    coord_y = newCoord_y;
-}
-
-void Unit::pave_the_way(int toCoord_x, int toCoord_y, int elapsedSpeed)
-{
-    // fill "way" vector with coord of fields unit
-    // moves throught towards the distanation point
-    depth_search(coord_x, coord_y, toCoord_x, toCoord_y, elapsedSpeed);
-
-    // remove current coord
-    way.pop_front();
-
-//    qDebug() << "DA WEY:\n";
-//    for (int i = 0; i < way.size(); i++)
-//        qDebug() << way[i].first << ":" << way[i].second << "\n";
-
-    // start move animation
-    if (moveTimer.isActive())
-        return;
-    moveTimer.start(10);
 }
 
 unit_combat_outcome Unit::attack(Unit *enemy, int enemyFieldDefenseBonus)
@@ -286,7 +247,46 @@ void Unit::set_fraction_color()
     fractionRect.setBrush(brush);
 }
 
-void insert_all_neighbours(QVector<QPair<int, int>>& neighbours, int x, int y, QVector<QPair<int, int>>& path)
+void Unit::move_unit(qreal destPosCoord_x, qreal destPosCoord_y, int elapsedSpeed)
+{
+    int newCoord_x = FROM_POS_TO_GAMEFIELD_COORD(destPosCoord_x);
+    int newCoord_y = FROM_POS_TO_GAMEFIELD_COORD(destPosCoord_y);
+
+    if (elapsedSpeed > speedLeft)
+        elapsedSpeed = speedLeft;
+
+    pave_the_way(newCoord_x, newCoord_y, elapsedSpeed);
+
+    speedLeft -= elapsedSpeed;
+
+    if (speedLeft <= 0)
+        active = false;
+
+//    setPos(toPosCoord_x, toPosCoord_y);
+    coord_x = newCoord_x;
+    coord_y = newCoord_y;
+}
+
+void Unit::pave_the_way(int toCoord_x, int toCoord_y, int elapsedSpeed)
+{
+    // fill "way" vector with coord of fields unit
+    // moves throught towards the distanation point
+    depth_search_for_the_shortest_path(coord_x, coord_y, toCoord_x, toCoord_y, elapsedSpeed);
+
+    // remove current coord
+    way.pop_front();
+
+//    qDebug() << "DA WEY:\n";
+//    for (int i = 0; i < way.size(); i++)
+//        qDebug() << way[i].first << ":" << way[i].second << "\n";
+
+    // start move animation
+    if (moveTimer.isActive())
+        return;
+    moveTimer.start(10);
+}
+
+void depth_seach_insert_neighbours(QVector<QPair<int, int>>& neighbours, int x, int y, QVector<QPair<int, int>>& path)
 {
     if (x+1 < game->gameField->get_width() && !path.contains(qMakePair(x+1, y)))
         neighbours.push_back(qMakePair(x+1, y));
@@ -298,7 +298,7 @@ void insert_all_neighbours(QVector<QPair<int, int>>& neighbours, int x, int y, Q
         neighbours.push_back(qMakePair(x, y-1));
 }
 
-int Unit::depth_search(int x, int y, int toCoord_x, int toCoord_y, int& elapsedSpeed)
+int Unit::depth_search_for_the_shortest_path(int x, int y, int toCoord_x, int toCoord_y, int& elapsedSpeed)
 {
     int wastedSpeed = game->gameField->fields[x][y].get_speed_modificator();
     QVector<QPair<int, int>> neighbours;
@@ -325,9 +325,9 @@ int Unit::depth_search(int x, int y, int toCoord_x, int toCoord_y, int& elapsedS
         return 0;
     }
 
-    insert_all_neighbours(neighbours, x, y, way);
+    depth_seach_insert_neighbours(neighbours, x, y, way);
     for (auto it = neighbours.begin(); it != neighbours.end(); it++)
-        if (depth_search(it->first, it->second, toCoord_x, toCoord_y, elapsedSpeed))
+        if (depth_search_for_the_shortest_path(it->first, it->second, toCoord_x, toCoord_y, elapsedSpeed))
             return 1;
 
     elapsedSpeed += wastedSpeed;
@@ -338,22 +338,22 @@ int Unit::depth_search(int x, int y, int toCoord_x, int toCoord_y, int& elapsedS
 
 #define REPLACE_OR_NEW_INSERT(x, y, type) \
     if (possibleMovements.contains(qMakePair(x, y))) { \
-        if (possibleMovements.value(qMakePair(x, y)).minElapsedSpeed > elapsedSpeed) \
+        if (possibleMovements.value(qMakePair(x, y)).minElapsedSpeed > fieldsPassed) \
             possibleMovements.insert(qMakePair(x, y), \
-                (field_info){elapsedSpeed, type}); \
+                (field_info){fieldsPassed, type}); \
     } \
     else { \
         possibleMovements.insert(qMakePair(x, y), \
-            (field_info){elapsedSpeed, type}); \
+            (field_info){fieldsPassed, type}); \
     }
 
-void Unit::depth_search2(QHash<QPair<int, int>, field_info>& possibleMovements, int x, int y, int elapsedSpeed, QVector<QPair<int, int>>& path)
+void Unit::depth_search2(QHash<QPair<int, int>, field_info>& possibleMovements, int x, int y, int fieldsPassed, QVector<QPair<int, int>>& path)
 {
     QVector<QPair<int , int>> neighbours;
     neighbours.reserve(4);
 
     if (x != coord_x || y != coord_y)
-        elapsedSpeed += game->gameField->fields[x][y].get_speed_modificator();
+        fieldsPassed += game->gameField->fields[x][y].get_speed_modificator();
 
     if (game->gameField->fields[x][y].get_unit() != nullptr
             && game->gameField->fields[x][y].get_unit() != this)
@@ -365,7 +365,7 @@ void Unit::depth_search2(QHash<QPair<int, int>, field_info>& possibleMovements, 
                 REPLACE_OR_NEW_INSERT(x, y, UNIT_POSSIBLE_MOVE_TYPE_ENEMY_IN_ATTACK_RANGE)
             }
         }
-        elapsedSpeed -= game->gameField->fields[x][y].get_speed_modificator();
+        fieldsPassed -= game->gameField->fields[x][y].get_speed_modificator();
         return;
     }
     else
@@ -375,20 +375,66 @@ void Unit::depth_search2(QHash<QPair<int, int>, field_info>& possibleMovements, 
 
     path.push_back(qMakePair(x, y));
 
-    if (elapsedSpeed < speedLeft)
+    if (fieldsPassed < speedLeft)
     {
-        insert_all_neighbours(neighbours, x, y, path);
+        depth_seach_insert_neighbours(neighbours, x, y, path);
 
         for (int i = 0; i < neighbours.size(); i++)
-            depth_search2(possibleMovements, neighbours[i].first, neighbours[i].second, elapsedSpeed, path);
+            depth_search2(possibleMovements, neighbours[i].first, neighbours[i].second, fieldsPassed, path);
     }
 
     path.pop_back();
-    elapsedSpeed -= game->gameField->fields[x][y].get_speed_modificator();
+    fieldsPassed -= game->gameField->fields[x][y].get_speed_modificator();
 
     return;
 }
 #undef REPLACE_OR_NEW_INSERT
+
+void width_search_insert_neighbours(QQueue<QPair<int, int>>& checkQueue, QHash<QPair<int, int>, int>& alreadyChecked, int x, int y)
+{
+    if (x+1 <= game->gameField->get_width() && !alreadyChecked.value(qMakePair(x+1, y)))
+    {
+        checkQueue.enqueue(qMakePair(x+1, y));
+        alreadyChecked.insert(qMakePair(x+1, y), 1);
+    }
+    if (x-1 >= 0 && !alreadyChecked.value(qMakePair(x-1, y)))
+    {
+        checkQueue.enqueue(qMakePair(x-1, y));
+        alreadyChecked.insert(qMakePair(x-1, y), 1);
+    }
+    if (y+1 <= game->gameField->get_height() && !alreadyChecked.value(qMakePair(x, y+1)))
+    {
+        checkQueue.enqueue(qMakePair(x, y+1));
+        alreadyChecked.insert(qMakePair(x, y+1), 1);
+    }
+    if (y-1 >= 0 && !alreadyChecked.value(qMakePair(x, y-1)))
+    {
+        checkQueue.enqueue(qMakePair(x, y-1));
+        alreadyChecked.insert(qMakePair(x, y-1), 1);
+    }
+}
+
+void Unit::width_search_for_enemies_in_attack_range(QHash<QPair<int, int>, field_info>& possibleMovements)
+{
+    QQueue<QPair<int, int>> checkQueue;
+    QHash<QPair<int, int>, int> alreadyChecked;
+
+    width_search_insert_neighbours(checkQueue, alreadyChecked, coord_x, coord_y);
+
+    while (!checkQueue.empty())
+    {
+        auto pair = checkQueue.dequeue();
+        if (abs(coord_x - pair.first) + abs(coord_y - pair.second) <= this->attackRange)
+        {
+            if (game->gameField->fields[pair.first][pair.second].get_unit() != nullptr &&
+                game->gameField->fields[pair.first][pair.second].get_unit()->get_fraction() != this->get_fraction())
+                possibleMovements.insert(qMakePair(pair.first, pair.second),
+                                        (field_info){0, UNIT_POSSIBLE_MOVE_TYPE_ENEMY_IN_ATTACK_RANGE});
+
+            width_search_insert_neighbours(checkQueue, alreadyChecked, pair.first, pair.second);
+        }
+    }
+}
 
 void Unit::calculate_possible_movements(QHash<QPair<int, int>, field_info>& possibleMovements)
 {
@@ -401,40 +447,11 @@ void Unit::calculate_possible_movements(QHash<QPair<int, int>, field_info>& poss
     possibleMovements.remove(qMakePair(coord_x, coord_y));
 
     if (attackType == UNIT_ATTACK_TYPE_RANGED)
-    {
-        QVector<QPair<int, int> > possibleAttackDirections;
-
-        calculate_possible_attack_directions(possibleAttackDirections);
-        check_distant_fields_for_enemies(possibleMovements, possibleAttackDirections);
-    }
+        width_search_for_enemies_in_attack_range(possibleMovements);
 
     //    qDebug() << "EL SPEED:\n";
     //    for (auto it = possibleMovements.begin(); it != possibleMovements.end(); it++)
     //        qDebug() << it.key().first << ":" << it.key().second << " = " << it.value().minElapsedSpeed << "\n";
-}
-
-void Unit::calculate_possible_attack_directions(QVector<QPair<int, int> >& possibleAttackDirections)
-{
-    possibleAttackDirections.reserve(4*attackRange);
-    for (int i = 2; i <= attackRange; i++)
-    {
-        if (coord_x + i < game->gameField->get_width())
-            possibleAttackDirections.push_back(qMakePair(coord_x + i, coord_y));
-        if (coord_x - i >= 0)
-            possibleAttackDirections.push_back(qMakePair(coord_x - i, coord_y));
-        if (coord_y + i < game->gameField->get_height())
-            possibleAttackDirections.push_back(qMakePair(coord_x, coord_y + i));
-        if (coord_y - i >= 0)
-            possibleAttackDirections.push_back(qMakePair(coord_x, coord_y - i));
-    }
-}
-
-void Unit::check_distant_fields_for_enemies(QHash<QPair<int, int>, field_info>& possibleMovements, QVector<QPair<int, int> >& possibleAttackDirections)
-{
-    for (int i = 0; i < possibleAttackDirections.size(); i++)
-        if (game->gameField->fields[possibleAttackDirections[i].first][possibleAttackDirections[i].second].get_unit() != nullptr &&
-            game->gameField->fields[possibleAttackDirections[i].first][possibleAttackDirections[i].second].get_unit()->get_fraction() != this->get_fraction())
-                possibleMovements.insert(qMakePair(possibleAttackDirections[i].first, possibleAttackDirections[i].second), (field_info){0, UNIT_POSSIBLE_MOVE_TYPE_ENEMY_IN_ATTACK_RANGE});
 }
 
 void Unit::reset_speed()
@@ -442,7 +459,7 @@ void Unit::reset_speed()
     speedLeft = speed;
 }
 
-int Unit::get_speed_left()
+int Unit::get_speed_left() const
 {
     return speedLeft;
 }
@@ -462,7 +479,7 @@ void Unit::set_inactive()
     active = false;
 }
 
-unit_attack_type Unit::get_attack_type()
+unit_attack_type Unit::get_attack_type() const
 {
     return attackType;
 }
@@ -478,7 +495,7 @@ void Unit::update_displayed_health()
         healthText.hide();
 }
 
-void Unit::get_name(QString& retName)
+void Unit::get_name(QString& retName) const
 {
     retName = name;
 }
@@ -578,7 +595,7 @@ void Unit::move()
 
 void Unit::start_damage_received_animation(int damageReceived)
 {
-    qDebug() << "DMG REC:"<<damageReceived<<endl;
+//    qDebug() << "DMG REC:"<<damageReceived<<endl;
     if (damageReceived)
     {
         damageReceivedText.setPlainText(QString("-%1").arg(QString::number(damageReceived)));

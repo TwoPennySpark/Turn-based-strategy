@@ -22,7 +22,6 @@ Game::~Game()
         delete player;
 
     delete mainMenu;
-    delete mainMenuLayout;
 }
 
 void Game::start()
@@ -199,9 +198,10 @@ void Game::show_main_menu()
 {
     mainMenu = new QWidget;
 
-    singlePlayerButton = new QPushButton("Single Player");
+    singlePlayerButton = new QPushButton("Hot-seat");
     connect(singlePlayerButton, &QPushButton::clicked, this, &Game::start);
     multiPlayerButton = new QPushButton("Multiplayer");
+    connect(multiPlayerButton, &QPushButton::clicked, [&](){this->deleteLater(); emit finished();});
 
     mainMenuLayout = new QVBoxLayout;
     mainMenuLayout->addWidget(singlePlayerButton);
