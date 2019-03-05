@@ -1,4 +1,5 @@
 #include "game.h"
+#include <QLineEdit>
 
 //Game::Game(QThread* mainThread)
 Game::Game()
@@ -21,21 +22,50 @@ Game::~Game()
     for (auto player: players)
         delete player;
 
-    delete mainMenu;
+    delete mainWidget;
 }
 
-void Game::start()
+void Game::start_hot_seat()
 {
     qDebug() << "MAIN THREAD: " << pthread_self() << "\n";
 
     view = new QGraphicsView();
-    view->setFixedSize(1800, 900);
+//    view->showFullScreen();
+    view->setFixedSize(1900, 900);
     view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     create_players();
     state = STATE_BASIC;
     gameField = new GameField(view);
+}
+#include <QStackedWidget>
+void Game::start_multiplayer()
+{
+    //    QLayout* temp = mainWidget->layout();
+//    mainWidget->layout()->removeWidget(mainWidget);
+//    delete temp;
+//    qDebug() << mainWidget->layout()->count() << "\n";
+//    qDebug() << exitButton << "\n";
+    QPushButton* butt ;
+    for (int i = 0; i < mainWidget->layout()->count(); i++)
+        if (mainWidget->layout()->itemAt(i) != nullptr)
+            if ((butt = dynamic_cast<QPushButton*>(mainWidget->layout()->itemAt(i))))
+                    qDebug() << butt->text();
+//        qDebug() << mainWidget->layout()->itemAt(i);
+//    std::for_each(mainWidget->layout()->children().begin(), mainWidget->layout()->children().end(), [](QObject* obj){qDebug() << obj << "\n";delete obj;});
+    delete mainWidget->layout();
+
+    QVBoxLayout *enterNameLayout = new QVBoxLayout;
+    QLineEdit *lineEdit = new QLineEdit();
+    lineEdit->setGeometry(100, 100, 1000, 200);
+    lineEdit->setAlignment(Qt::AlignCenter);
+    QPushButton* nextButton = new QPushButton("Next");
+
+    enterNameLayout->addWidget(lineEdit);
+    enterNameLayout->addWidget(nextButton);
+
+    mainWidget->setLayout(enterNameLayout);
 }
 
 void Game::next_turn()
@@ -47,7 +77,7 @@ void Game::next_turn()
 
 void Game::create_players()
 {
-    mainMenu->hide();
+    mainWidget->hide();
 
     playerNum = 4;
     if (playerNum > max_player_num)
@@ -61,7 +91,7 @@ void Game::create_players()
 //        players[i] = new player;
         players.push_back(new player);
         players[i]->color = static_cast<player_color>(i);
-        players[i]->money = 10000;
+        players[i]->money = 1000;
         players[i]->income = 0;
         players[i]->isLosing = false;
         players[i]->turnsBeforeLosing = max_turns_before_losing;
@@ -174,7 +204,7 @@ void Game::show_player_lost_msg_box(const QString& playerName) const
     QMessageBox msgBox;
     msgBox.setText(QString("Player \"%1\" lost").arg(playerName));
     msgBox.addButton(QMessageBox::Close);
-        msgBox.setFixedSize(400, 200);
+     //   msgBox.setFixedSize(400, 200);
     msgBox.move(view->width()/2  - msgBox.width()/2,
                 view->height()/2 - msgBox.height()/2);
     msgBox.exec();
@@ -186,7 +216,7 @@ void Game::show_player_won_msg_box(const QString &playerName)
     gameOverBox.setText(QString("Player \"%1\" won!").arg(playerName));
     gameOverBox.addButton(QMessageBox::Close);
     gameOverBox.move(view->width()/2  - gameOverBox.width()/2,
-                view->height()/2 - gameOverBox.height()/2);
+                     view->height()/2 - gameOverBox.height()/2);
     gameOverBox.exec();
 
     this->deleteLater();
@@ -196,19 +226,40 @@ void Game::show_player_won_msg_box(const QString &playerName)
 
 void Game::show_main_menu()
 {
-    mainMenu = new QWidget;
+    QStackedWidget *stackWidget = new QStackedWidget;
 
-    singlePlayerButton = new QPushButton("Hot-seat");
-    connect(singlePlayerButton, &QPushButton::clicked, this, &Game::start);
-    multiPlayerButton = new QPushButton("Multiplayer");
-    connect(multiPlayerButton, &QPushButton::clicked, [&](){this->deleteLater(); emit finished();});
-
+    mainWidget = new QWidget;
     mainMenuLayout = new QVBoxLayout;
-    mainMenuLayout->addWidget(singlePlayerButton);
-    mainMenuLayout->addWidget(multiPlayerButton);
 
-    mainMenu->setGeometry(0, 0, 500, 500);
-    mainMenu->setLayout(mainMenuLayout);
-    mainMenu->show();
+    mainWidget->setGeometry(0, 0, 500, 500);
+
+    QPushButton* singlePlayerButton = new QPushButton("Hot-seat");
+    mainMenuLayout->addWidget(singlePlayerButton);
+    connect(singlePlayerButton, &QPushButton::clicked, this, &Game::start_hot_seat);
+    QPushButton* multiPlayerButton = new QPushButton("Multiplayer");
+    mainMenuLayout->addWidget(multiPlayerButton);
+    connect(multiPlayerButton, &QPushButton::clicked, this, &Game::start_multiplayer);
+    QPushButton* exitButton = new QPushButton("Exit");
+    mainMenuLayout->addWidget(exitButton);
+    connect(exitButton, &QPushButton::clicked, [&](){this->deleteLater(); emit finished();});
+    mainWidget->setLayout(mainMenuLayout);
+
+    QWidget *widget2 = new QWidget;
+    QVBoxLayout *enterNameLayout = new QVBoxLayout;
+    QLineEdit *lineEdit = new QLineEdit();
+    lineEdit->setGeometry(100, 100, 1000, 200);
+    lineEdit->setAlignment(Qt::AlignCenter);
+    QPushButton* nextButton = new QPushButton("Next");
+
+    enterNameLayout->addWidget(lineEdit);
+    enterNameLayout->addWidget(nextButton);
+    widget2->setLayout(enterNameLayout);
+
+    stackWidget->addWidget(mainWidget);
+    stackWidget->addWidget(widget2);
+    stackWidget->setCurrentIndex(1);
+    connect(nextButton, &QPushButton::clicked, [&](){stackWidget->setCurrentIndex(0);});
+    stackWidget->show();
+//    mainWidget->show();
 }
 

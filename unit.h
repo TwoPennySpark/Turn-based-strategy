@@ -90,7 +90,7 @@ public:
 
     void calculate_possible_movements(QHash<QPair<int, int>, field_info> &possibleMovements);
 
-    void depth_search2(QHash<QPair<int, int>, field_info> &possibleMovements, int x, int y, int fieldsPassed, QVector<QPair<int, int> > &path);
+    void depth_search_for_possible_moves(QHash<QPair<int, int>, field_info> &possibleMovements, int x, int y, int fieldsPassed, QVector<QPair<int, int> > &path);
     void width_search_for_enemies_in_attack_range(QHash<QPair<int, int>, field_info>& possibleMovements);
 
     void move_unit(qreal toPosCoord_x, qreal toPosCoord_y, int numOfPassedFields);

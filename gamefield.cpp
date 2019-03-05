@@ -9,7 +9,7 @@ extern Game* game;
 
 GameField::GameField(QGraphicsView *view, QWidget *parent): QGraphicsScene(parent)
 {
-    this->setFocus();
+//    this->setFocus();
     this->setSceneRect(0, 0, 5000, 2500);
     view->setScene(this);
 
@@ -36,22 +36,23 @@ GameField::GameField(QGraphicsView *view, QWidget *parent): QGraphicsScene(paren
     // tests
 //        place_new_unit_on_gamefield(0, 0, UNIT_TYPE_DRAGON);
 //        place_new_unit_on_gamefield(5, 0, UNIT_TYPE_DRAGON);
-    place_new_unit_on_gamefield(1, 2, UNIT_TYPE_ARCHER);
-    place_new_unit_on_gamefield(2, 2, UNIT_TYPE_MAGE);
-    place_new_unit_on_gamefield(3, 1, UNIT_TYPE_WARRIOR);
+//    place_new_unit_on_gamefield(1, 2, UNIT_TYPE_ARCHER);
+//    place_new_unit_on_gamefield(2, 2, UNIT_TYPE_MAGE);
+//    place_new_unit_on_gamefield(3, 1, UNIT_TYPE_WARRIOR);
 //    place_new_unit_on_gamefield(5, 6, UNIT_TYPE_ARCHER);
 //    place_new_unit_on_gamefield(6, 4, UNIT_TYPE_KNIGHT);
 //    place_new_unit_on_gamefield(7, 5, UNIT_TYPE_CATAPULT);
 //    place_new_unit_on_gamefield(9, 9, UNIT_TYPE_WATER_ELEMENTAL);
-    game->next_turn();
-    place_new_unit_on_gamefield(3, 3, UNIT_TYPE_ARCHER);
-    place_new_unit_on_gamefield(4, 4, UNIT_TYPE_WARRIOR);
-    place_new_unit_on_gamefield(2, 1, UNIT_TYPE_CATAPULT);
+//    game->next_turn();
+//    place_new_unit_on_gamefield(3, 3, UNIT_TYPE_ARCHER);
+//    place_new_unit_on_gamefield(4, 4, UNIT_TYPE_WARRIOR);
+//    place_new_unit_on_gamefield(2, 1, UNIT_TYPE_CATAPULT);
 //    place_new_unit_on_gamefield(8, 8, UNIT_TYPE_KNIGHT);
 //    place_new_unit_on_gamefield(13, 5, UNIT_TYPE_DRAGON);
 
     update_info_rect();
     update_info_rect_color();
+    show_cur_player_rect();
 }
 
 GameField::~GameField()
@@ -698,7 +699,25 @@ void GameField::check_if_player_has_any_castles_left(player_color player)
     game->set_player_countdown(player, true);
 }
 
-void GameField::parse_map_file()
+
+void GameField::create_gamefield()
+{
+    if (parse_map_file() < 0)
+        return;
+
+    int i = 0;
+    for (auto it = castles.begin(); it != castles.end(); it++)
+    {
+        if (i < game->get_player_num())
+            set_new_castle_owner(it.key(), static_cast<player_color>(i));
+        else
+            set_new_castle_owner(it.key(), PLAYER_NONE);
+        addItem(it.value().fractionRect);
+        i++;
+    }
+}
+
+int GameField::parse_map_file()
 {
     std::ifstream mapFile;
     mapFile.open("map.txt");
@@ -707,7 +726,7 @@ void GameField::parse_map_file()
     if (!mapFile.is_open())
     {
         qDebug() << "[-]Can't open map file\n";
-        return;
+        return -1;
     }
 
     // first line should be like this: <width,height>
@@ -732,19 +751,21 @@ void GameField::parse_map_file()
         //qDebug() << "[" << coordX << ":" << coordY << "]:" << tType << endl;
 
         fields[coordX][coordY].setImg(tType);
-        fields[coordX][coordY].setPos(coordX*SOLE_SQUARE_FIELD_SIZE, coordY*SOLE_SQUARE_FIELD_SIZE);
+        fields[coordX][coordY].setPos(FROM_GAMEFIELD_TO_POS_COORD(coordX),
+                                      FROM_GAMEFIELD_TO_POS_COORD(coordY));
 
         if (tType == TERRAIN_TYPE_CASTLE)
             castles.insert(qMakePair(coordX, coordY),
                           (real_estate){PLAYER_NONE, new QGraphicsRectItem(fields[coordX][coordY].x(), fields[coordX][coordY].y(), 15, 15)});
         this->addItem(&fields[coordX][coordY]);
 
-        QGraphicsTextItem *text  = new QGraphicsTextItem;
-        text->setPlainText(QString("%1:%2").arg(QString::number(coordX), QString::number(coordY)));
-        text->setPos(fields[coordX][coordY].x()+10, fields[coordX][coordY].y()+10);
-        text->setZValue(0.75);
-        addItem(text);
+//        QGraphicsTextItem *text  = new QGraphicsTextItem;
+//        text->setPlainText(QString("%1:%2").arg(QString::number(coordX), QString::number(coordY)));
+//        text->setPos(fields[coordX][coordY].x()+10, fields[coordX][coordY].y()+10);
+//        text->setZValue(0.75);
+//        addItem(text);
     }
+    return 0;
 }
 
 void GameField::next_turn()
@@ -885,22 +906,6 @@ void GameField::prepare_cur_player_rect()
     curPlayerRectGroup->hide();
 }
 
-void GameField::create_gamefield()
-{
-    parse_map_file();
-
-    int i = 0;
-    for (auto it = castles.begin(); it != castles.end(); it++)
-    {
-        if (i < game->get_player_num())
-            set_new_castle_owner(it.key(), static_cast<player_color>(i));
-        else
-            set_new_castle_owner(it.key(), PLAYER_NONE);
-        addItem(it.value().fractionRect);
-        i++;
-    }
-}
-
 void GameField::show_cur_player_rect()
 {
     QString curPlayerName;
@@ -922,7 +927,7 @@ void GameField::show_cur_player_rect()
 
     QTimer timer;
     auto localGroup = curPlayerRectGroup;
-    timer.singleShot(5000, [localGroup](){localGroup->hide();});
+    timer.singleShot(3000, [localGroup](){localGroup->hide();});
 }
 
 void GameField::show_unit_purchase_scene()

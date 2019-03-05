@@ -25,6 +25,7 @@ class Unit;
 const int SOLE_SQUARE_FIELD_SIZE = 100;
 
 #define FROM_POS_TO_GAMEFIELD_COORD(coord) static_cast<int>((coord) / SOLE_SQUARE_FIELD_SIZE)
+#define FROM_GAMEFIELD_TO_POS_COORD(coord) static_cast<qreal>((coord) * SOLE_SQUARE_FIELD_SIZE)
 
 class SoleField: public QGraphicsPixmapItem
 {

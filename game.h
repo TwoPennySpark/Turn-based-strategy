@@ -40,7 +40,8 @@ public:
     Game();
 //    Game(QThread *mainThread);
     ~Game();
-    void start();
+    void start_hot_seat();
+    void start_multiplayer();
 
     void next_turn();
 
@@ -75,6 +76,7 @@ private:
     const int max_turns_before_losing = 1;
     int playerNum;
     int playersLeft;
+//    QPushButton* exitButton;
 
     int curPlayerIndex;
     QVector<player*> players;
@@ -84,10 +86,8 @@ private:
 
     QGraphicsView *view;
 
-    QWidget *mainMenu;
+    QWidget *mainWidget;
     QVBoxLayout *mainMenuLayout;
-    QPushButton *singlePlayerButton;
-    QPushButton *multiPlayerButton;
 signals:
     void finished();
 };

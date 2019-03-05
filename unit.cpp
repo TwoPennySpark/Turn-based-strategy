@@ -79,7 +79,7 @@ Unit::Unit(int x, int y, unit_type t, player_color fraction_color): QObject(null
     addToGroup(&damageReceivedText);
 
     setZValue(0.8);
-    setPos(coord_x*SOLE_SQUARE_FIELD_SIZE, coord_y*SOLE_SQUARE_FIELD_SIZE);
+    setPos(FROM_GAMEFIELD_TO_POS_COORD(coord_x), FROM_GAMEFIELD_TO_POS_COORD(coord_y));
 }
 #undef SET_STATS
 
@@ -347,7 +347,7 @@ int Unit::depth_search_for_the_shortest_path(int x, int y, int toCoord_x, int to
             (field_info){fieldsPassed, type}); \
     }
 
-void Unit::depth_search2(QHash<QPair<int, int>, field_info>& possibleMovements, int x, int y, int fieldsPassed, QVector<QPair<int, int>>& path)
+void Unit::depth_search_for_possible_moves(QHash<QPair<int, int>, field_info>& possibleMovements, int x, int y, int fieldsPassed, QVector<QPair<int, int>>& path)
 {
     QVector<QPair<int , int>> neighbours;
     neighbours.reserve(4);
@@ -380,7 +380,7 @@ void Unit::depth_search2(QHash<QPair<int, int>, field_info>& possibleMovements, 
         depth_seach_insert_neighbours(neighbours, x, y, path);
 
         for (int i = 0; i < neighbours.size(); i++)
-            depth_search2(possibleMovements, neighbours[i].first, neighbours[i].second, fieldsPassed, path);
+            depth_search_for_possible_moves(possibleMovements, neighbours[i].first, neighbours[i].second, fieldsPassed, path);
     }
 
     path.pop_back();
@@ -443,7 +443,7 @@ void Unit::calculate_possible_movements(QHash<QPair<int, int>, field_info>& poss
     path.reserve(speedLeft);
 
     possibleMovements.insert(qMakePair(coord_x, coord_y), (field_info){0, UNIT_POSSIBLE_MOVE_TYPE_ENEMY_FAR_OR_ALLY});
-    depth_search2(possibleMovements, coord_x, coord_y, elapsedSpeed, path);
+    depth_search_for_possible_moves(possibleMovements, coord_x, coord_y, elapsedSpeed, path);
     possibleMovements.remove(qMakePair(coord_x, coord_y));
 
     if (attackType == UNIT_ATTACK_TYPE_RANGED)
@@ -553,19 +553,19 @@ void Unit::move()
     switch (direction)
     {
         case UNIT_MOVE_DIRECTION_UP:
-            if (this->y() <= static_cast<qreal>(way[curMoveDestIndex].second * SOLE_SQUARE_FIELD_SIZE))
+            if (this->y() <= static_cast<qreal>(FROM_GAMEFIELD_TO_POS_COORD(way[curMoveDestIndex].second)))
                 destinationReached = true;
             break;
         case UNIT_MOVE_DIRECTION_DOWN:
-            if (this->y() >= static_cast<qreal>(way[curMoveDestIndex].second * SOLE_SQUARE_FIELD_SIZE))
+            if (this->y() >= static_cast<qreal>(FROM_GAMEFIELD_TO_POS_COORD(way[curMoveDestIndex].second)))
                 destinationReached = true;
             break;
         case UNIT_MOVE_DIRECTION_LEFT:
-            if (this->x() <= static_cast<qreal>(way[curMoveDestIndex].first * SOLE_SQUARE_FIELD_SIZE))
+            if (this->x() <= static_cast<qreal>(FROM_GAMEFIELD_TO_POS_COORD(way[curMoveDestIndex].first)))
                 destinationReached = true;
             break;
         case UNIT_MOVE_DIRECTION_RIGHT:
-            if (this->x() >= static_cast<qreal>(way[curMoveDestIndex].first * SOLE_SQUARE_FIELD_SIZE))
+            if (this->x() >= static_cast<qreal>(FROM_GAMEFIELD_TO_POS_COORD(way[curMoveDestIndex].first)))
                 destinationReached = true;
             break;
         default:
@@ -579,8 +579,8 @@ void Unit::move()
             moveTimer.stop();
             direction = UNIT_MOVE_DIRECTION_NONE;
 
-            setPos(way[curMoveDestIndex-1].first  * SOLE_SQUARE_FIELD_SIZE,
-                   way[curMoveDestIndex-1].second * SOLE_SQUARE_FIELD_SIZE);
+            setPos(FROM_GAMEFIELD_TO_POS_COORD(way[curMoveDestIndex-1].first),
+                   FROM_GAMEFIELD_TO_POS_COORD(way[curMoveDestIndex-1].second));
             way.clear();
 
             curMoveDestIndex = 0;

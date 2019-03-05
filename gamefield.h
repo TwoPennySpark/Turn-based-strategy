@@ -65,7 +65,7 @@ public:
     void check_if_player_has_any_castles_left(player_color player);
     void set_countdown(player_color player);
 
-    void parse_map_file();
+    int parse_map_file();
 
     void next_turn();
 

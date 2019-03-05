@@ -1,14 +1,12 @@
 #include "markfield.h"
-
+#include <algorithm>
 MarkField::MarkField()
 {
     QVector<QPointF> markPoints;
     markPoints << QPointF(1,1) << QPointF(1,3) << QPointF(3,3)
                << QPointF(3,2) << QPointF(2,2) << QPointF(2,1);
 
-    int scaleBy = 5;
-    for (auto& point: markPoints)
-        point *= scaleBy;
+    std::for_each(markPoints.begin(), markPoints.end(), [](QPointF& point){int scaleBy = 5; point*=scaleBy;});
 
     QPolygonF tempPolygon(markPoints);
 
@@ -61,8 +59,8 @@ MarkField::~MarkField()
 
 void MarkField::move(int field_x, int field_y)
 {
-    setPos(field_x * SOLE_SQUARE_FIELD_SIZE,
-           field_y * SOLE_SQUARE_FIELD_SIZE);
+    setPos(FROM_GAMEFIELD_TO_POS_COORD(field_x),
+           FROM_GAMEFIELD_TO_POS_COORD(field_y));
     markCoord_X = field_x;
     markCoord_Y = field_y;
 }
