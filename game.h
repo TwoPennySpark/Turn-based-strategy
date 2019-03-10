@@ -8,6 +8,7 @@
 #include <QApplication>
 #include <QVBoxLayout>
 #include "gamefield.h"
+#include "networkmanager.h"
 
 #include <QThread>
 #include <QObject>
@@ -50,24 +51,29 @@ public:
     int get_cur_player_income() const;
     void get_cur_player_name(QString &retName) const;
 
-    void set_state(cur_player_state newState);
+    void set_state(const cur_player_state newState);
     cur_player_state get_state() const;
 
     int get_player_num() const;
 
-    void change_player_income(player_color player, int change);
-    void change_cur_player_money_amount(int change);
+    void change_player_income(const player_color player, const int change);
+    void change_cur_player_money_amount(const int change);
 
-    bool is_player_losing(player_color player) const;
-    void set_player_countdown(player_color player, bool status);
-    void decrement_countdown(player_color player);
-    int get_turns_left(player_color player) const;
-    void delete_player(player_color player);
+    bool is_player_losing(const player_color player) const;
+    void set_player_countdown(const player_color player, bool status);
+    void decrement_countdown(const player_color player);
+    int get_turns_left(const player_color player) const;
+    void delete_player(const player_color player);
 
     void show_player_lost_msg_box(const QString &playerName) const;
     void show_player_won_msg_box(const QString &playerName);
 
     void show_main_menu();
+    void show_connect_menu();
+    void show_create_serv_menu();
+    void clear_main_window();
+
+    void create_network_thread(bool createServer, QString host, int port);
 
     GameField *gameField;
 
@@ -76,7 +82,6 @@ private:
     const int max_turns_before_losing = 1;
     int playerNum;
     int playersLeft;
-//    QPushButton* exitButton;
 
     int curPlayerIndex;
     QVector<player*> players;
@@ -87,9 +92,15 @@ private:
     QGraphicsView *view;
 
     QWidget *mainWidget;
-    QVBoxLayout *mainMenuLayout;
+
+    NetworkManager* netMng;
+    QThread* networkThread;
+
 signals:
     void finished();
+
+    void create_serv_sig(int port);
+    void connect_to_serv_sig(QString host, int port);
 };
 
 #endif // GAME_H

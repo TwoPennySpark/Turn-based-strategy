@@ -61,8 +61,8 @@ public:
     void show_unit_purchase_scene();
     void show_unit_info_on_purchase_scene();
 
-    void set_new_castle_owner(QPair<int, int> castleCoord, player_color newOwner);
-    void check_if_player_has_any_castles_left(player_color player);
+    void set_new_castle_owner(const QPair<int, int> &castleCoord, const player_color newOwner);
+    void check_if_player_has_any_castles_left(const player_color player);
     void set_countdown(player_color player);
 
     int parse_map_file();

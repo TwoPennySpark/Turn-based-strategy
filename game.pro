@@ -30,7 +30,8 @@ SOURCES += \
     markfield.cpp \
     gamefield.cpp \
     game.cpp \
-    solefield.cpp
+    solefield.cpp \
+    networkmanager.cpp
 
 HEADERS += \
     gamefield.h \
@@ -38,7 +39,8 @@ HEADERS += \
     markfield.h \
     solefield.h \
     unit.h \
-    solefield.h
+    solefield.h \
+    networkmanager.h
 
 FORMS += \
         mainwindow.ui

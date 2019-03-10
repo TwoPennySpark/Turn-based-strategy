@@ -352,7 +352,7 @@ void GameField::show_possible_movements(QHash<QPair<int, int>, field_info> &poss
         }
     }
 
-    for (auto it = possibleMovements.begin(); it != possibleMovements.end(); it++)
+    for (auto it = qAsConst(possibleMovements).begin(); it != qAsConst(possibleMovements).end(); it++)
     {
             if (it.value().moveType == UNIT_POSSIBLE_MOVE_TYPE_ENEMY_IN_ATTACK_RANGE)
                 posMovesRects[i]->setBrush(brushRed);
@@ -366,9 +366,6 @@ void GameField::show_possible_movements(QHash<QPair<int, int>, field_info> &poss
             posMovesRects[i]->show();
             i++;
     }
-
-//    for (int j = prevSize; j < posMovesRects.size(); j++)
-//    addItem(posMovesRects[j]);
 }
 
 void GameField::delete_possible_movements_rect()
@@ -475,7 +472,7 @@ void GameField::update_info_rect()
 void GameField::update_info_rect_color()
 {
     QList<QGraphicsItem*>list = infoRectGroup->childItems();
-    for (QGraphicsItem* item: list)
+    for (QGraphicsItem* item: qAsConst(list))
     {
         QGraphicsRectItem* rect = dynamic_cast<QGraphicsRectItem*>(item);
         if (rect)
@@ -642,7 +639,7 @@ void GameField::show_unit_info_on_purchase_scene()
     prevSelectedUnit = selectedUnit;
 }
 
-void GameField::set_new_castle_owner(QPair<int, int> castleCoord, player_color newOwner)
+void GameField::set_new_castle_owner(const QPair<int, int>& castleCoord, const player_color newOwner)
 {
     real_estate newRecord;
     real_estate prevRecord;
@@ -690,9 +687,9 @@ void GameField::set_new_castle_owner(QPair<int, int> castleCoord, player_color n
     update_hud();
 }
 
-void GameField::check_if_player_has_any_castles_left(player_color player)
+void GameField::check_if_player_has_any_castles_left(const player_color player)
 {
-    for (auto it = castles.begin(); it != castles.end(); it++)
+    for (auto it = qAsConst(castles).begin(); it != qAsConst(castles).end(); it++)
         if (it.value().fraction == player)
             return;
 
@@ -706,7 +703,7 @@ void GameField::create_gamefield()
         return;
 
     int i = 0;
-    for (auto it = castles.begin(); it != castles.end(); it++)
+    for (auto it = qAsConst(castles).begin(); it != qAsConst(castles).end(); it++)
     {
         if (i < game->get_player_num())
             set_new_castle_owner(it.key(), static_cast<player_color>(i));

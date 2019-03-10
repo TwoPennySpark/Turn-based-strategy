@@ -1,5 +1,7 @@
 #include "game.h"
 #include <QLineEdit>
+#include <QStackedWidget>
+#include <QLabel>
 
 //Game::Game(QThread* mainThread)
 Game::Game()
@@ -11,6 +13,7 @@ Game::Game()
 
 //    connect(mainThread, &QThread::started, this, &Game::start);
 //    this->moveToThread(mainThread);
+    mainWidget = new QWidget;
 }
 
 Game::~Game()
@@ -39,32 +42,25 @@ void Game::start_hot_seat()
     state = STATE_BASIC;
     gameField = new GameField(view);
 }
-#include <QStackedWidget>
+
 void Game::start_multiplayer()
 {
-    //    QLayout* temp = mainWidget->layout();
-//    mainWidget->layout()->removeWidget(mainWidget);
-//    delete temp;
-//    qDebug() << mainWidget->layout()->count() << "\n";
-//    qDebug() << exitButton << "\n";
-    QPushButton* butt ;
-    for (int i = 0; i < mainWidget->layout()->count(); i++)
-        if (mainWidget->layout()->itemAt(i) != nullptr)
-            if ((butt = dynamic_cast<QPushButton*>(mainWidget->layout()->itemAt(i))))
-                    qDebug() << butt->text();
-//        qDebug() << mainWidget->layout()->itemAt(i);
-//    std::for_each(mainWidget->layout()->children().begin(), mainWidget->layout()->children().end(), [](QObject* obj){qDebug() << obj << "\n";delete obj;});
-    delete mainWidget->layout();
+    clear_main_window();
 
     QVBoxLayout *enterNameLayout = new QVBoxLayout;
-    QLineEdit *lineEdit = new QLineEdit();
-    lineEdit->setGeometry(100, 100, 1000, 200);
-    lineEdit->setAlignment(Qt::AlignCenter);
-    QPushButton* nextButton = new QPushButton("Next");
+    QLabel* nameLabel = new QLabel("Enter your name");
+    QLineEdit *nameEdit = new QLineEdit();
+    nameEdit->setAlignment(Qt::AlignCenter);
 
-    enterNameLayout->addWidget(lineEdit);
-    enterNameLayout->addWidget(nextButton);
+    QPushButton* connectButton = new QPushButton("Connect");
+    connect(connectButton, &QPushButton::clicked, this, &Game::show_connect_menu);
+    QPushButton* createServButton = new QPushButton("Create a server");
+    connect(createServButton, &QPushButton::clicked, this, &Game::show_create_serv_menu);
 
+    enterNameLayout->addWidget(nameLabel);
+    enterNameLayout->addWidget(nameEdit);
+    enterNameLayout->addWidget(connectButton);
+    enterNameLayout->addWidget(createServButton);
     mainWidget->setLayout(enterNameLayout);
 }
 
@@ -114,6 +110,7 @@ void Game::create_players()
                 break;
         }
     }
+
     curPlayerIndex = 0;
 }
 
@@ -137,7 +134,7 @@ void Game::get_cur_player_name(QString &retName) const
     retName = players[curPlayerIndex]->name;
 }
 
-void Game::set_state(cur_player_state newState)
+void Game::set_state(const cur_player_state newState)
 {
     state = newState;
 }
@@ -152,22 +149,22 @@ int Game::get_player_num() const
     return playerNum;
 }
 
-void Game::change_player_income(player_color player, int change)
+void Game::change_player_income(const player_color player, const int change)
 {
     players[static_cast<int>(player)]->income += change;
 }
 
-void Game::change_cur_player_money_amount(int change)
+void Game::change_cur_player_money_amount(const int change)
 {
     players[curPlayerIndex]->money += change;
 }
 
-bool Game::is_player_losing(player_color player) const
+bool Game::is_player_losing(const player_color player) const
 {
     return players[static_cast<int>(player)]->isLosing;
 }
 
-void Game::set_player_countdown(player_color player, bool status)
+void Game::set_player_countdown(const player_color player, bool status)
 {
     players[static_cast<int>(player)]->isLosing = status;
 
@@ -175,19 +172,19 @@ void Game::set_player_countdown(player_color player, bool status)
         players[static_cast<int>(player)]->turnsBeforeLosing = max_turns_before_losing;
 }
 
-void Game::decrement_countdown(player_color player)
+void Game::decrement_countdown(const player_color player)
 {
     if (players[static_cast<int>(player)]->isLosing)
         if (--players[static_cast<int>(player)]->turnsBeforeLosing < 0)
             delete_player(players[static_cast<int>(player)]->color);
 }
 
-int Game::get_turns_left(player_color player) const
+int Game::get_turns_left(const player_color player) const
 {
     return players[static_cast<int>(player)]->turnsBeforeLosing;
 }
 
-void Game::delete_player(player_color player)
+void Game::delete_player(const player_color player)
 {
     show_player_lost_msg_box(players[static_cast<int>(player)]->name);
 
@@ -227,39 +224,107 @@ void Game::show_player_won_msg_box(const QString &playerName)
 void Game::show_main_menu()
 {
     QStackedWidget *stackWidget = new QStackedWidget;
+    QVBoxLayout *mainMenuLayout = new QVBoxLayout;
 
-    mainWidget = new QWidget;
-    mainMenuLayout = new QVBoxLayout;
-
-    mainWidget->setGeometry(0, 0, 500, 500);
+    mainWidget->setGeometry(700, 250, 500, 500);
 
     QPushButton* singlePlayerButton = new QPushButton("Hot-seat");
     mainMenuLayout->addWidget(singlePlayerButton);
     connect(singlePlayerButton, &QPushButton::clicked, this, &Game::start_hot_seat);
+
     QPushButton* multiPlayerButton = new QPushButton("Multiplayer");
     mainMenuLayout->addWidget(multiPlayerButton);
     connect(multiPlayerButton, &QPushButton::clicked, this, &Game::start_multiplayer);
+
     QPushButton* exitButton = new QPushButton("Exit");
     mainMenuLayout->addWidget(exitButton);
     connect(exitButton, &QPushButton::clicked, [&](){this->deleteLater(); emit finished();});
+
     mainWidget->setLayout(mainMenuLayout);
 
-    QWidget *widget2 = new QWidget;
-    QVBoxLayout *enterNameLayout = new QVBoxLayout;
-    QLineEdit *lineEdit = new QLineEdit();
-    lineEdit->setGeometry(100, 100, 1000, 200);
-    lineEdit->setAlignment(Qt::AlignCenter);
-    QPushButton* nextButton = new QPushButton("Next");
+//    QWidget *widget2 = new QWidget;
+//    QVBoxLayout *enterNameLayout = new QVBoxLayout;
+//    QLineEdit *lineEdit = new QLineEdit();
+//    lineEdit->setGeometry(100, 100, 1000, 200);
+//    lineEdit->setAlignment(Qt::AlignCenter);
+//    QPushButton* nextButton = new QPushButton("Next");
 
-    enterNameLayout->addWidget(lineEdit);
-    enterNameLayout->addWidget(nextButton);
-    widget2->setLayout(enterNameLayout);
+//    enterNameLayout->addWidget(lineEdit);
+//    enterNameLayout->addWidget(nextButton);
+//    widget2->setLayout(enterNameLayout);
 
-    stackWidget->addWidget(mainWidget);
-    stackWidget->addWidget(widget2);
-    stackWidget->setCurrentIndex(1);
-    connect(nextButton, &QPushButton::clicked, [&](){stackWidget->setCurrentIndex(0);});
-    stackWidget->show();
-//    mainWidget->show();
+//    stackWidget->addWidget(mainWidget);
+//    stackWidget->addWidget(widget2);
+//    stackWidget->setCurrentIndex(0);
+//    connect(nextButton, &QPushButton::clicked, [&](){stackWidget->setCurrentIndex(1);});
+//    stackWidget->show();
+    mainWidget->show();
+}
+
+void Game::show_connect_menu()
+{
+    clear_main_window();
+
+    QVBoxLayout* connectMenuLayout = new QVBoxLayout();
+
+    QLineEdit *ipEdit = new QLineEdit();
+    QLabel* ipLabel = new QLabel("Enter IP");
+    ipEdit->setAlignment(Qt::AlignCenter);
+
+    QLineEdit *portEdit = new QLineEdit();
+    QLabel* portLabel = new QLabel("Enter port");
+    portEdit->setAlignment(Qt::AlignCenter);
+
+    QPushButton *connectButton = new QPushButton("Connect");
+
+    connectMenuLayout->addWidget(ipLabel);
+    connectMenuLayout->addWidget(ipEdit);
+    connectMenuLayout->addWidget(portLabel);
+    connectMenuLayout->addWidget(portEdit);
+    connectMenuLayout->addWidget(connectButton);
+    mainWidget->setLayout(connectMenuLayout);
+
+    create_network_thread(false, ipEdit->text(), portLabel->text().toInt());
+}
+
+void Game::show_create_serv_menu()
+{
+    clear_main_window();
+
+    QVBoxLayout* createServLayout = new QVBoxLayout();
+    QLabel* connectionNumLabel = new QLabel("Players: 1/4");
+    createServLayout->addWidget(connectionNumLabel);
+
+    mainWidget->setLayout(createServLayout);
+
+    QString ip = "127.0.0.1";
+    create_network_thread(true, ip, 5555);
+}
+
+void Game::clear_main_window()
+{
+    QLayoutItem* item;
+    while ((item = mainWidget->layout()->takeAt(0)))
+    {
+        delete item->widget();
+        delete item;
+    }
+    delete mainWidget->layout();
+}
+
+void Game::create_network_thread(bool createServer, QString host, int port)
+{
+    netMng = new NetworkManager;
+    connect(this, &Game::create_serv_sig, netMng, &NetworkManager::create_server);
+    connect(this, &Game::connect_to_serv_sig, netMng, &NetworkManager::connect_to_server);
+
+    networkThread = new QThread;
+    networkThread->start();
+    netMng->moveToThread(networkThread);
+
+    if (createServer)
+        emit create_serv_sig(port);
+    else
+        emit connect_to_serv_sig(host, port);
 }
 
