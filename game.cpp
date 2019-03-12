@@ -30,7 +30,7 @@ Game::~Game()
 
 void Game::start_hot_seat()
 {
-    qDebug() << "MAIN THREAD: " << pthread_self() << "\n";
+//    qDebug() << "MAIN THREAD: " << QThread::currentThreadId() << "\n";
 
     view = new QGraphicsView();
 //    view->showFullScreen();
@@ -112,6 +112,11 @@ void Game::create_players()
     }
 
     curPlayerIndex = 0;
+}
+
+void Game::call_create_network_thread(QString host, unsigned short port)
+{
+    create_network_thread(false, host, port);
 }
 
 player_color Game::get_cur_player_color() const
@@ -201,7 +206,6 @@ void Game::show_player_lost_msg_box(const QString& playerName) const
     QMessageBox msgBox;
     msgBox.setText(QString("Player \"%1\" lost").arg(playerName));
     msgBox.addButton(QMessageBox::Close);
-     //   msgBox.setFixedSize(400, 200);
     msgBox.move(view->width()/2  - msgBox.width()/2,
                 view->height()/2 - msgBox.height()/2);
     msgBox.exec();
@@ -267,15 +271,17 @@ void Game::show_connect_menu()
 
     QVBoxLayout* connectMenuLayout = new QVBoxLayout();
 
-    QLineEdit *ipEdit = new QLineEdit();
     QLabel* ipLabel = new QLabel("Enter IP");
+    QLineEdit *ipEdit = new QLineEdit("127.0.0.1");
     ipEdit->setAlignment(Qt::AlignCenter);
 
-    QLineEdit *portEdit = new QLineEdit();
     QLabel* portLabel = new QLabel("Enter port");
+    QLineEdit *portEdit = new QLineEdit("5555");
     portEdit->setAlignment(Qt::AlignCenter);
 
     QPushButton *connectButton = new QPushButton("Connect");
+    connect(connectButton, &QPushButton::clicked,
+            [this, ipEdit, portEdit](){this->create_network_thread(false, ipEdit->text(), portEdit->text().toInt());});
 
     connectMenuLayout->addWidget(ipLabel);
     connectMenuLayout->addWidget(ipEdit);
@@ -283,8 +289,6 @@ void Game::show_connect_menu()
     connectMenuLayout->addWidget(portEdit);
     connectMenuLayout->addWidget(connectButton);
     mainWidget->setLayout(connectMenuLayout);
-
-    create_network_thread(false, ipEdit->text(), portLabel->text().toInt());
 }
 
 void Game::show_create_serv_menu()
@@ -292,13 +296,55 @@ void Game::show_create_serv_menu()
     clear_main_window();
 
     QVBoxLayout* createServLayout = new QVBoxLayout();
-    QLabel* connectionNumLabel = new QLabel("Players: 1/4");
-    createServLayout->addWidget(connectionNumLabel);
+    QLabel* portLabel = new QLabel("Enter port");
+    QLineEdit *portEdit = new QLineEdit("5555");
+    portEdit->setAlignment(Qt::AlignCenter);
+
+    QPushButton *createServButton = new QPushButton("Create a server");
+    connect(createServButton, &QPushButton::clicked,
+            [this, portEdit](){this->create_network_thread(true, "127.0.0.1", portEdit->text().toInt());});
+
+    createServLayout->addWidget(portLabel);
+    createServLayout->addWidget(portEdit);
+    createServLayout->addWidget(createServButton);
 
     mainWidget->setLayout(createServLayout);
+}
 
-    QString ip = "127.0.0.1";
-    create_network_thread(true, ip, 5555);
+void Game::create_network_thread(bool createServer, QString host, int port)
+{
+    netMng = new NetworkManager(createServer, max_player_num);
+    connect(this, &Game::create_serv_sig, netMng, &NetworkManager::create_server);
+    connect(this, &Game::connect_to_serv_sig, netMng, &NetworkManager::connect_to_server);
+    connect(netMng, &NetworkManager::network_manager_success, this, &Game::show_waiting_for_players_screen);
+
+    networkThread = new QThread;
+    networkThread->start();
+    netMng->moveToThread(networkThread);
+
+    emit createServer ? create_serv_sig(port) : connect_to_serv_sig(host, port);
+}
+
+void Game::show_waiting_for_players_screen(bool isHost)
+{
+    clear_main_window();
+
+    QVBoxLayout* layout = new QVBoxLayout;
+    QLabel* playersReadyLabel = new QLabel("Players ready:1/4");
+
+    QPushButton* startButton;
+    if (isHost)
+        startButton = new QPushButton("Start");
+    else
+        startButton = new QPushButton("Ready");
+
+    QPushButton* disconnectButton = new QPushButton("Disconnect");
+    connect(disconnectButton, &QPushButton::clicked, netMng, &NetworkManager::this_player_disconnected);
+
+    layout->addWidget(playersReadyLabel);
+    layout->addWidget(startButton);
+    layout->addWidget(disconnectButton);
+    mainWidget->setLayout(layout);
 }
 
 void Game::clear_main_window()
@@ -311,20 +357,3 @@ void Game::clear_main_window()
     }
     delete mainWidget->layout();
 }
-
-void Game::create_network_thread(bool createServer, QString host, int port)
-{
-    netMng = new NetworkManager;
-    connect(this, &Game::create_serv_sig, netMng, &NetworkManager::create_server);
-    connect(this, &Game::connect_to_serv_sig, netMng, &NetworkManager::connect_to_server);
-
-    networkThread = new QThread;
-    networkThread->start();
-    netMng->moveToThread(networkThread);
-
-    if (createServer)
-        emit create_serv_sig(port);
-    else
-        emit connect_to_serv_sig(host, port);
-}
-

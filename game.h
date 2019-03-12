@@ -101,6 +101,10 @@ signals:
 
     void create_serv_sig(int port);
     void connect_to_serv_sig(QString host, int port);
+
+public slots:
+    void show_waiting_for_players_screen(bool isHost);
+    void call_create_network_thread(QString host, unsigned short int port);
 };
 
 #endif // GAME_H

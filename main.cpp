@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 
 //    QThread* mainThread = new QThread;
 
-    qDebug() << "GUI THREAD: " << pthread_self() << "\n";
+    qDebug() << "GUI THREAD: " << QThread::currentThreadId() << "\n";
     game = new Game();
 
 //    QObject::connect(game, &Game::finished, func, Qt::DirectConnection);
