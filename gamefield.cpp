@@ -88,8 +88,7 @@ GameField::~GameField()
 void GameField::keyPressEvent(QKeyEvent *event)
 {
     static QHash<QPair<int, int>, field_info> possibleMovements;
-//    game->show_player_won_msg_box("name");
-//    return;
+
     switch (event->key())
     {
         case (Qt::Key_W):
@@ -199,7 +198,7 @@ void GameField::keyPressEvent(QKeyEvent *event)
             switch (game->get_state())
             {
                 case STATE_BASIC:
-                    if (get_marked_field_unit() && get_marked_field_unit()->get_fraction() == game->get_cur_player_color() &&
+                    if (get_marked_field_unit() && get_marked_field_unit()->get_fraction() == game->get_player_list()->get_cur_player_color() &&
                             get_marked_field_unit()->is_active())
                     {
                         selectedUnitField = get_marked_field();
@@ -207,7 +206,7 @@ void GameField::keyPressEvent(QKeyEvent *event)
                         game->set_state(STATE_UNIT_SELECTED);
                     }
                     else if (get_marked_field_unit() == nullptr && get_marked_field()->get_terrain_type() == TERRAIN_TYPE_CASTLE
-                            && castles.value(mark.get_marked_coord_pair()).fraction == game->get_cur_player_color())
+                            && castles.value(mark.get_marked_coord_pair()).fraction == game->get_player_list()->get_cur_player_color())
                     {
                         show_unit_purchase_scene();
                     }
@@ -262,9 +261,9 @@ void GameField::keyPressEvent(QKeyEvent *event)
                 case STATE_UNIT_PURCHASE:
                     mark.move(castleSpawnCoord_X, castleSpawnCoord_Y);
                     if (fields[castleSpawnCoord_X][castleSpawnCoord_Y].get_unit() == nullptr &&
-                            game->get_cur_player_money() - Unit::get_record_from_default_stats_table(selectedUnit)->cost >= 0)
+                            game->get_player_list()->get_cur_player_money() - Unit::get_record_from_default_stats_table(selectedUnit)->cost >= 0)
                     {
-                        game->change_cur_player_money_amount(-Unit::get_record_from_default_stats_table(selectedUnit)->cost);
+                        game->get_player_list()->change_cur_player_money_amount(-Unit::get_record_from_default_stats_table(selectedUnit)->cost);
                         place_new_unit_on_gamefield(castleSpawnCoord_X, castleSpawnCoord_Y, selectedUnit);
                         update_info_rect();
                         update_hud();
@@ -293,8 +292,8 @@ void GameField::keyPressEvent(QKeyEvent *event)
                 }
                 else if (game->get_state() == STATE_BASIC)
                 {
-                    if (get_marked_field()->get_terrain_type() == TERRAIN_TYPE_CASTLE
-                            && castles.value(mark.get_marked_coord_pair()).fraction == game->get_cur_player_color())
+                    if (get_marked_field()->get_terrain_type() == TERRAIN_TYPE_CASTLE &&
+                        castles.value(mark.get_marked_coord_pair()).fraction == game->get_player_list()->get_cur_player_color())
                     {
                         show_unit_purchase_scene();
                     }
@@ -376,7 +375,7 @@ void GameField::delete_possible_movements_rect()
 
 void GameField::place_new_unit_on_gamefield(int field_x, int field_y, unit_type type)
 {
-    Unit* newUnit = new Unit(field_x, field_y, type, game->get_cur_player_color());
+    Unit* newUnit = new Unit(field_x, field_y, type, game->get_player_list()->get_cur_player_color());
 
     fields[field_x][field_y].set_unit(newUnit);
 
@@ -480,7 +479,7 @@ void GameField::update_info_rect_color()
             QBrush brush;
             brush.setStyle(Qt::SolidPattern);
 
-            switch (game->get_cur_player_color())
+            switch (game->get_player_list()->get_cur_player_color())
             {
                 case PLAYER_BLUE:
                     brush.setColor(QColor(114, 123, 255, 200));
@@ -589,10 +588,8 @@ void GameField::prepare_unit_purchase_scene()
                               speedBlock->boundingRect().y() + speedBlock->boundingRect().height()/2 - speedString[i].boundingRect().height()*3/2);
         speedString[i].hide();
 
-        if (p->attackType == UNIT_ATTACK_TYPE_MELEE)
-            attackTypeString[i].setPlainText("Attack type: Melee");
-        else
-            attackTypeString[i].setPlainText("Attack Type: Ranged");
+        attackTypeString[i].setPlainText(p->attackType == UNIT_ATTACK_TYPE_MELEE ? "Attack type: Melee" : "Attack Type: Ranged");
+
         attackTypeString[i].setScale(3);
         attackTypeString[i].setPos(attackTypeBlock->boundingRect().width()/2 - attackTypeString[i].boundingRect().width()*3/2,
                                    attackTypeBlock->boundingRect().y() + attackTypeBlock->boundingRect().height()/2 - attackTypeString[i].boundingRect().height()*3/2);
@@ -674,15 +671,15 @@ void GameField::set_new_castle_owner(const QPair<int, int>& castleCoord, const p
 
     if (prevRecord.fraction != PLAYER_NONE)
     {
-        game->change_player_income(prevRecord.fraction, -INCOME_CASTLE);
+        game->get_player_list()->change_player_income(prevRecord.fraction, -INCOME_CASTLE);
         check_if_player_has_any_castles_left(prevRecord.fraction);
     }
 
     if (newOwner != PLAYER_NONE)
     {
-        game->change_player_income(newOwner, INCOME_CASTLE);
-        if (game->is_player_losing(newOwner))
-            game->set_player_countdown(newOwner, false);
+        game->get_player_list()->change_player_income(newOwner, INCOME_CASTLE);
+        if (game->get_player_list()->is_player_losing(newOwner))
+            game->get_player_list()->set_player_countdown(newOwner, false);
     }
     update_hud();
 }
@@ -693,7 +690,7 @@ void GameField::check_if_player_has_any_castles_left(const player_color player)
         if (it.value().fraction == player)
             return;
 
-    game->set_player_countdown(player, true);
+    game->get_player_list()->set_player_countdown(player, true);
 }
 
 
@@ -703,12 +700,10 @@ void GameField::create_gamefield()
         return;
 
     int i = 0;
-    for (auto it = qAsConst(castles).begin(); it != qAsConst(castles).end(); it++)
+    for (auto it = castles.cbegin(); it != castles.cend(); it++)
     {
-        if (i < game->get_player_num())
-            set_new_castle_owner(it.key(), static_cast<player_color>(i));
-        else
-            set_new_castle_owner(it.key(), PLAYER_NONE);
+        set_new_castle_owner(it.key(), (i < game->get_player_num() ? static_cast<player_color>(i) : PLAYER_NONE));
+
         addItem(it.value().fractionRect);
         i++;
     }
@@ -767,11 +762,11 @@ int GameField::parse_map_file()
 
 void GameField::next_turn()
 {
-    if (game->is_player_losing(game->get_cur_player_color()))
-        game->decrement_countdown(game->get_cur_player_color());
+    if (game->get_player_list()->is_player_losing(game->get_player_list()->get_cur_player_color()))
+        game->get_player_list()->decrement_countdown(game->get_player_list()->get_cur_player_color());
 
     game->next_turn();
-    game->change_cur_player_money_amount(game->get_cur_player_income());
+    game->get_player_list()->change_cur_player_money_amount(game->get_player_list()->get_cur_player_income());
 
     update_hud();
     show_cur_player_rect();
@@ -779,7 +774,7 @@ void GameField::next_turn()
 
     for (Unit *u: unitsOnGamefield)
     {
-        if (u->get_fraction() == game->get_cur_player_color())
+        if (u->get_fraction() == game->get_player_list()->get_cur_player_color())
         {
             u->set_active();
             u->reset_speed();
@@ -800,8 +795,8 @@ int GameField::get_height()
 void GameField::update_hud()
 {
     moneyAmountText->setPlainText(QString("%1(+%2)").arg
-                           (QString::number(game->get_cur_player_money()),
-                            QString::number(game->get_cur_player_income())));
+                           (QString::number(game->get_player_list()->get_cur_player_money()),
+                            QString::number(game->get_player_list()->get_cur_player_income())));
 }
 
 SoleField *GameField::get_marked_field()
@@ -848,8 +843,8 @@ void GameField::prepare_hud()
 
     moneyAmountText = new QGraphicsTextItem(hud);
     moneyAmountText->setPlainText(QString("%1(+%2)").arg
-                           (QString::number(game->get_cur_player_money()),
-                            QString::number(game->get_cur_player_income())));
+                           (QString::number(game->get_player_list()->get_cur_player_money()),
+                            QString::number(game->get_player_list()->get_cur_player_income())));
     moneyAmountText->setDefaultTextColor(Qt::yellow);
     moneyAmountText->setTransformOriginPoint(moneyAmountText->boundingRect().center());
     moneyAmountText->setScale(2);
@@ -906,11 +901,11 @@ void GameField::prepare_cur_player_rect()
 void GameField::show_cur_player_rect()
 {
     QString curPlayerName;
-    game->get_cur_player_name(curPlayerName);
+    game->get_player_list()->get_cur_player_name(curPlayerName);
 
-    if (game->is_player_losing(game->get_cur_player_color()))
+    if (game->get_player_list()->is_player_losing(game->get_player_list()->get_cur_player_color()))
         curPlayerRectText->setPlainText(QString("%1 player turn (Turns before losing:%2)").arg(
-                                            curPlayerName, QString::number(game->get_turns_left(game->get_cur_player_color()))));
+                                            curPlayerName, QString::number(game->get_player_list()->get_turns_left(game->get_player_list()->get_cur_player_color()))));
     else
         curPlayerRectText->setPlainText(QString("%1 player turn").arg(curPlayerName));
 

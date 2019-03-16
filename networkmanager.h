@@ -24,10 +24,13 @@ private:
 
     bool isHost;
 
+    QString thisPlayerName;
     QTcpServer* server;
     QVector<QTcpSocket*>socket;
 
     void wait_for_players_connections();
+//    void broadcast_player_connected(char* name);
+//    void broadcast_player_disconnected();
 
 public slots:
     void create_server(unsigned short port);
@@ -38,6 +41,8 @@ public slots:
 
 signals:
     void network_manager_success(bool isHost);
+    void new_player_connected_sig(char *name);
+    void player_disconnected_sig(char *name);
 };
 
 #endif // NETWORKMANAGER_H

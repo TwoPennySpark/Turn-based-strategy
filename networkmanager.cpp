@@ -35,7 +35,7 @@ void NetworkManager::connect_to_server(QString host, unsigned short int port)
     sock->waitForReadyRead(-1);
     char data[64] = "\0";
     sock->read(data, 64);
-    qDebug() << "Response:" << data;
+    qDebug() << "Host name:" << data;
 
     socket.push_back(sock);
     emit network_manager_success(isHost);
@@ -49,12 +49,16 @@ void NetworkManager::wait_for_players_connections()
     {
         loop.processEvents();
 
-        if (!server->waitForNewConnection(5000))
+        if (!server->waitForNewConnection(3000))
             continue;
         qDebug() << "[!]New connection\n";
 
-        QTcpSocket* sock = server->nextPendingConnection();
-        if (!sock->waitForReadyRead(10000))
+        QTcpSocket* sock = server->nextPendingConnection();        
+        loop.connect(sock, &QTcpSocket::disconnected,
+                     this, QOverload<>::of(&NetworkManager::player_disconnected_from_this_host));
+        loop.connect(sock, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error),
+                     this, QOverload<QAbstractSocket::SocketError>::of(&NetworkManager::player_disconnected_from_this_host));
+        if (!sock->waitForReadyRead(5000))
             continue;
 
         QByteArray name(sock->read(MAX_NAME_LENGTH));
@@ -66,18 +70,14 @@ void NetworkManager::wait_for_players_connections()
         numOfConnectedPlayers++;
 
         qDebug() << sock << ":" << numOfConnectedPlayers;
-
-        loop.connect(sock, &QTcpSocket::disconnected,
-                     this, QOverload<>::of(&NetworkManager::player_disconnected_from_this_host));
-        loop.connect(sock, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error),
-                     this, static_cast<void (NetworkManager::*)(QAbstractSocket::SocketError)>(&NetworkManager::player_disconnected_from_this_host));
+        new_player_connected_sig(name.data());
     }
 }
 
 void NetworkManager::player_disconnected_from_this_host()
 {
     QTcpSocket *sock = qobject_cast<QTcpSocket*>(QObject::sender());
-    qDebug() << "<" << QThread::currentThreadId() << "> [!]Player disconnected" << sock->errorString();
+    qDebug() << "<" << QThread::currentThreadId() << "> [!]Player disconnected";
     socket.removeOne(sock);
     sock->close();
     numOfConnectedPlayers--;

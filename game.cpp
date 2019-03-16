@@ -3,17 +3,11 @@
 #include <QStackedWidget>
 #include <QLabel>
 
-//Game::Game(QThread* mainThread)
 Game::Game()
-{/*
-    view = new QGraphicsView();
-    view->setFixedSize(1000, 800);
-    view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);*/
-
-//    connect(mainThread, &QThread::started, this, &Game::start);
-//    this->moveToThread(mainThread);
+{
     mainWidget = new QWidget;
+
+    playerNum = 0;
 }
 
 Game::~Game()
@@ -30,8 +24,6 @@ Game::~Game()
 
 void Game::start_hot_seat()
 {
-//    qDebug() << "MAIN THREAD: " << QThread::currentThreadId() << "\n";
-
     view = new QGraphicsView();
 //    view->showFullScreen();
     view->setFixedSize(1900, 900);
@@ -51,6 +43,7 @@ void Game::start_multiplayer()
     QLabel* nameLabel = new QLabel("Enter your name");
     QLineEdit *nameEdit = new QLineEdit();
     nameEdit->setAlignment(Qt::AlignCenter);
+    nameEdit->setText("Player");
 
     QPushButton* connectButton = new QPushButton("Connect");
     connect(connectButton, &QPushButton::clicked, this, &Game::show_connect_menu);
@@ -64,11 +57,14 @@ void Game::start_multiplayer()
     mainWidget->setLayout(enterNameLayout);
 }
 
+PlayerList* Game::get_player_list()
+{
+    return playerList;
+}
+
 void Game::next_turn()
 {
-    curPlayerIndex = (curPlayerIndex+1) % (playerNum);
-    while (players[curPlayerIndex]->turnsBeforeLosing < 0)
-        curPlayerIndex = (curPlayerIndex+1) % (playerNum);
+    playerList->next_turn();
 }
 
 void Game::create_players()
@@ -78,65 +74,40 @@ void Game::create_players()
     playerNum = 4;
     if (playerNum > max_player_num)
         playerNum = max_player_num;
-    players.reserve(playerNum);
+    playerNames.reserve(playerNum);
 
     playersLeft = playerNum;
 
+    curPlayerIndex = 0;
+
+    QString temp;
     for (int i = 0; i < playerNum; i++)
     {
-//        players[i] = new player;
-        players.push_back(new player);
-        players[i]->color = static_cast<player_color>(i);
-        players[i]->money = 1000;
-        players[i]->income = 0;
-        players[i]->isLosing = false;
-        players[i]->turnsBeforeLosing = max_turns_before_losing;
-
-        switch (players[i]->color)
+        switch (static_cast<player_color>(i))
         {
             case PLAYER_RED:
-                players[i]->name = "Red";
+                temp = "Red";
                 break;
             case PLAYER_GREEN:
-                players[i]->name = "Green";
+                temp = "Green";
                 break;
             case PLAYER_BLUE:
-                players[i]->name = "Blue";
+                temp = "Blue";
                 break;
             case PLAYER_BLACK:
-                players[i]->name = "Black";
+                temp = "Black";
                 break;
             default:
                 break;
         }
+        playerNames.push_back(temp);
     }
-
-    curPlayerIndex = 0;
+    playerList = new PlayerList(playerNames);
 }
 
 void Game::call_create_network_thread(QString host, unsigned short port)
 {
     create_network_thread(false, host, port);
-}
-
-player_color Game::get_cur_player_color() const
-{
-    return players[curPlayerIndex]->color;
-}
-
-int Game::get_cur_player_money() const
-{
-    return players[curPlayerIndex]->money;
-}
-
-int Game::get_cur_player_income() const
-{
-    return players[curPlayerIndex]->income;
-}
-
-void Game::get_cur_player_name(QString &retName) const
-{
-    retName = players[curPlayerIndex]->name;
 }
 
 void Game::set_state(const cur_player_state newState)
@@ -152,53 +123,6 @@ cur_player_state Game::get_state() const
 int Game::get_player_num() const
 {
     return playerNum;
-}
-
-void Game::change_player_income(const player_color player, const int change)
-{
-    players[static_cast<int>(player)]->income += change;
-}
-
-void Game::change_cur_player_money_amount(const int change)
-{
-    players[curPlayerIndex]->money += change;
-}
-
-bool Game::is_player_losing(const player_color player) const
-{
-    return players[static_cast<int>(player)]->isLosing;
-}
-
-void Game::set_player_countdown(const player_color player, bool status)
-{
-    players[static_cast<int>(player)]->isLosing = status;
-
-    if (!status)
-        players[static_cast<int>(player)]->turnsBeforeLosing = max_turns_before_losing;
-}
-
-void Game::decrement_countdown(const player_color player)
-{
-    if (players[static_cast<int>(player)]->isLosing)
-        if (--players[static_cast<int>(player)]->turnsBeforeLosing < 0)
-            delete_player(players[static_cast<int>(player)]->color);
-}
-
-int Game::get_turns_left(const player_color player) const
-{
-    return players[static_cast<int>(player)]->turnsBeforeLosing;
-}
-
-void Game::delete_player(const player_color player)
-{
-    show_player_lost_msg_box(players[static_cast<int>(player)]->name);
-
-    playersLeft--;
-    if (playersLeft == 1)
-    {
-        next_turn();
-        show_player_won_msg_box(players[curPlayerIndex]->name);
-    }
 }
 
 void Game::show_player_lost_msg_box(const QString& playerName) const
@@ -329,21 +253,36 @@ void Game::show_waiting_for_players_screen(bool isHost)
 {
     clear_main_window();
 
+    playerNum++;
+
     QVBoxLayout* layout = new QVBoxLayout;
     QLabel* playersReadyLabel = new QLabel("Players ready:1/4");
+    QLabel* playersListLabel = new QLabel("");
 
-    QPushButton* startButton;
-    if (isHost)
-        startButton = new QPushButton("Start");
-    else
-        startButton = new QPushButton("Ready");
+    connect(netMng, &NetworkManager::new_player_connected_sig, [playersReadyLabel, playersListLabel, this](char *newName)
+    {
+        playerNum++; playerNames.push_back(newName); playersListLabel->text().clear();
+        playersReadyLabel->setText(QString("Players ready:%1/%2").arg(QString::number(playerNum), QString::number(max_player_num)));
+        QString playerList; for (auto name: playerNames) playerList += name +"\n"; playersListLabel->setText(playerList);
+    });
+
+    connect(netMng, &NetworkManager::player_disconnected_sig, [playersReadyLabel, playersListLabel, this](char *newName)
+    {
+        playerNum--; playerNames.removeOne(newName); playersListLabel->text().clear();
+        playersReadyLabel->setText(QString("Players ready:%1/%2").arg(QString::number(playerNum), QString::number(max_player_num)));
+        QString playerList; for (auto name: playerNames) playerList += name +"\n"; playersListLabel->setText(playerList);
+    });
+
+    QPushButton* startButton = new QPushButton(isHost ? "Start" : "Ready");
 
     QPushButton* disconnectButton = new QPushButton("Disconnect");
     connect(disconnectButton, &QPushButton::clicked, netMng, &NetworkManager::this_player_disconnected);
 
     layout->addWidget(playersReadyLabel);
+    layout->addWidget(playersListLabel);
     layout->addWidget(startButton);
     layout->addWidget(disconnectButton);
+
     mainWidget->setLayout(layout);
 }
 
