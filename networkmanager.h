@@ -11,12 +11,20 @@
 
 const int MAX_NAME_LENGTH = 32;
 
+typedef enum pregame_network_commands
+{
+    PREGAME_NW_CMD_PLAYER_CONNECTED,
+    PREGAME_NW_CMD_PLAYER_DISCONNECTED,
+    PREGAME_NW_CMD_PLAYER_READY,
+    PREGAME_NW_CMD_START_GAME
+}pregame_network_commands;
+
 class NetworkManager: public QObject
 {
     Q_OBJECT
 
 public:
-    NetworkManager(bool createServer, int playerNum);
+    NetworkManager(QString name, bool createServer, int playerNum);
 
 private:
     const int maxNumOfPlayers;
@@ -26,7 +34,8 @@ private:
 
     QString thisPlayerName;
     QTcpServer* server;
-    QVector<QTcpSocket*>socket;
+    QVector<QTcpSocket*> socket;
+    QVector<QString> playerNames;
 
     void wait_for_players_connections();
 //    void broadcast_player_connected(char* name);

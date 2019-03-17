@@ -18,9 +18,19 @@ PlayerList::PlayerList(QVector<QString>& playerNames)
     curPlayerIndex = 0;
 }
 
+PlayerList::~PlayerList()
+{
+    for (auto player: players)
+        delete player;
+}
+
 void PlayerList::next_turn()
 {
-   curPlayerIndex = (curPlayerIndex+1) % playersLeft;
+    if (is_player_losing(get_cur_player_color()))
+        decrement_countdown(get_cur_player_color());
+
+    curPlayerIndex = (curPlayerIndex+1) % playersLeft;
+    change_cur_player_money_amount(players[curPlayerIndex]->income);
 }
 
 player *PlayerList::find_player_by_color(const player_color playerColor) const

@@ -16,48 +16,12 @@ Game::~Game()
 
     delete gameField;
 
-    for (auto player: players)
-        delete player;
-
     delete mainWidget;
+
+    delete playerList;
 }
 
-void Game::start_hot_seat()
-{
-    view = new QGraphicsView();
-//    view->showFullScreen();
-    view->setFixedSize(1900, 900);
-    view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-
-    create_players();
-    state = STATE_BASIC;
-    gameField = new GameField(view);
-}
-
-void Game::start_multiplayer()
-{
-    clear_main_window();
-
-    QVBoxLayout *enterNameLayout = new QVBoxLayout;
-    QLabel* nameLabel = new QLabel("Enter your name");
-    QLineEdit *nameEdit = new QLineEdit();
-    nameEdit->setAlignment(Qt::AlignCenter);
-    nameEdit->setText("Player");
-
-    QPushButton* connectButton = new QPushButton("Connect");
-    connect(connectButton, &QPushButton::clicked, this, &Game::show_connect_menu);
-    QPushButton* createServButton = new QPushButton("Create a server");
-    connect(createServButton, &QPushButton::clicked, this, &Game::show_create_serv_menu);
-
-    enterNameLayout->addWidget(nameLabel);
-    enterNameLayout->addWidget(nameEdit);
-    enterNameLayout->addWidget(connectButton);
-    enterNameLayout->addWidget(createServButton);
-    mainWidget->setLayout(enterNameLayout);
-}
-
-PlayerList* Game::get_player_list()
+PlayerList* Game::get_player_list() const
 {
     return playerList;
 }
@@ -75,10 +39,6 @@ void Game::create_players()
     if (playerNum > max_player_num)
         playerNum = max_player_num;
     playerNames.reserve(playerNum);
-
-    playersLeft = playerNum;
-
-    curPlayerIndex = 0;
 
     QString temp;
     for (int i = 0; i < playerNum; i++)
@@ -103,11 +63,6 @@ void Game::create_players()
         playerNames.push_back(temp);
     }
     playerList = new PlayerList(playerNames);
-}
-
-void Game::call_create_network_thread(QString host, unsigned short port)
-{
-    create_network_thread(false, host, port);
 }
 
 void Game::set_state(const cur_player_state newState)
@@ -147,6 +102,41 @@ void Game::show_player_won_msg_box(const QString &playerName)
     this->deleteLater();
 
     emit finished();
+}
+
+void Game::start_hot_seat()
+{
+    view = new QGraphicsView();
+//    view->showFullScreen();
+    view->setFixedSize(1900, 900);
+    view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    create_players();
+    state = STATE_BASIC;
+    gameField = new GameField(view);
+}
+
+void Game::start_multiplayer()
+{
+    clear_main_window();
+
+    QVBoxLayout *enterNameLayout = new QVBoxLayout;
+    QLabel* nameLabel = new QLabel("Enter your name");
+    QLineEdit *nameEdit = new QLineEdit();
+    nameEdit->setAlignment(Qt::AlignCenter);
+    nameEdit->setText("Player");
+
+    QPushButton* connectButton = new QPushButton("Connect");
+    connect(connectButton, &QPushButton::clicked, [nameEdit, this](){this->show_connect_menu(nameEdit->text());});
+    QPushButton* createServButton = new QPushButton("Create a server");
+    connect(createServButton, &QPushButton::clicked, [nameEdit, this](){this->show_create_serv_menu(nameEdit->text());});
+
+    enterNameLayout->addWidget(nameLabel);
+    enterNameLayout->addWidget(nameEdit);
+    enterNameLayout->addWidget(connectButton);
+    enterNameLayout->addWidget(createServButton);
+    mainWidget->setLayout(enterNameLayout);
 }
 
 void Game::show_main_menu()
@@ -189,7 +179,7 @@ void Game::show_main_menu()
     mainWidget->show();
 }
 
-void Game::show_connect_menu()
+void Game::show_connect_menu(QString name)
 {
     clear_main_window();
 
@@ -205,7 +195,7 @@ void Game::show_connect_menu()
 
     QPushButton *connectButton = new QPushButton("Connect");
     connect(connectButton, &QPushButton::clicked,
-            [this, ipEdit, portEdit](){this->create_network_thread(false, ipEdit->text(), portEdit->text().toInt());});
+            [this, name, ipEdit, portEdit](){this->create_network_thread(name, false, ipEdit->text(), portEdit->text().toInt());});
 
     connectMenuLayout->addWidget(ipLabel);
     connectMenuLayout->addWidget(ipEdit);
@@ -215,7 +205,7 @@ void Game::show_connect_menu()
     mainWidget->setLayout(connectMenuLayout);
 }
 
-void Game::show_create_serv_menu()
+void Game::show_create_serv_menu(QString name)
 {
     clear_main_window();
 
@@ -226,7 +216,7 @@ void Game::show_create_serv_menu()
 
     QPushButton *createServButton = new QPushButton("Create a server");
     connect(createServButton, &QPushButton::clicked,
-            [this, portEdit](){this->create_network_thread(true, "127.0.0.1", portEdit->text().toInt());});
+            [this, portEdit, name](){this->create_network_thread(name, true, "127.0.0.1", portEdit->text().toInt());});
 
     createServLayout->addWidget(portLabel);
     createServLayout->addWidget(portEdit);
@@ -235,9 +225,9 @@ void Game::show_create_serv_menu()
     mainWidget->setLayout(createServLayout);
 }
 
-void Game::create_network_thread(bool createServer, QString host, int port)
+void Game::create_network_thread(QString name, bool createServer, QString host, int port)
 {
-    netMng = new NetworkManager(createServer, max_player_num);
+    netMng = new NetworkManager(name, createServer, max_player_num);
     connect(this, &Game::create_serv_sig, netMng, &NetworkManager::create_server);
     connect(this, &Game::connect_to_serv_sig, netMng, &NetworkManager::connect_to_server);
     connect(netMng, &NetworkManager::network_manager_success, this, &Game::show_waiting_for_players_screen);

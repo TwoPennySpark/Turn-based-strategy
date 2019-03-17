@@ -6,13 +6,11 @@
 #include <QGraphicsView>
 #include <QScrollBar>
 #include <QApplication>
+#include <QThread>
 #include <QVBoxLayout>
 #include "gamefield.h"
 #include "playerlist.h"
 #include "networkmanager.h"
-
-#include <QThread>
-#include <QObject>
 
 typedef enum cur_player_state
 {
@@ -32,7 +30,7 @@ public:
     void start_hot_seat();
     void start_multiplayer();
 
-    PlayerList *get_player_list();
+    PlayerList *get_player_list() const;
 
     void next_turn();
 
@@ -45,24 +43,19 @@ public:
     void show_player_won_msg_box(const QString &playerName);
 
     void show_main_menu();
-    void show_connect_menu();
-    void show_create_serv_menu();
+    void show_connect_menu(QString name);
+    void show_create_serv_menu(QString name);
     void clear_main_window();
 
-    void create_network_thread(bool createServer, QString host, int port);
+    void create_network_thread(QString name, bool createServer, QString host, int port);
 
     GameField *gameField;
 
 private:
     const int max_player_num = 4;
-    const int max_turns_before_losing = 1;
     int playerNum;
-    int playersLeft;
 
-    int curPlayerIndex;
-    QVector<player*> players;
     void create_players();
-
     QVector<QString> playerNames;
     PlayerList* playerList;
 
@@ -83,7 +76,6 @@ signals:
 
 public slots:
     void show_waiting_for_players_screen(bool isHost);
-    void call_create_network_thread(QString host, unsigned short int port);
 };
 
 #endif // GAME_H

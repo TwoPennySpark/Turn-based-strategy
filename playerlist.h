@@ -21,6 +21,7 @@ class PlayerList
 {
 public:
     PlayerList(QVector<QString>& playerNames);
+    ~PlayerList();
 
     void next_turn();
 

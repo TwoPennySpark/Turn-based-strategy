@@ -762,11 +762,7 @@ int GameField::parse_map_file()
 
 void GameField::next_turn()
 {
-    if (game->get_player_list()->is_player_losing(game->get_player_list()->get_cur_player_color()))
-        game->get_player_list()->decrement_countdown(game->get_player_list()->get_cur_player_color());
-
     game->next_turn();
-    game->get_player_list()->change_cur_player_money_amount(game->get_player_list()->get_cur_player_income());
 
     update_hud();
     show_cur_player_rect();
