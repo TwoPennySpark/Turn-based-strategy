@@ -20,13 +20,13 @@ extern Game* game;
 
 const defaultUnitStats unitStatsLookupTable[UNIT_TYPE_MAX] =
 {
-    [UNIT_TYPE_WARRIOR] = {"Warrior", ":/unit/img/militia.png", 1, 1, UNIT_ATTACK_TYPE_MELEE, 1, 100},
-    [UNIT_TYPE_ARCHER] = {"Archer", ":/unit/img/archer.png", 2, 2, UNIT_ATTACK_TYPE_RANGED, 3, 250},
-    [UNIT_TYPE_KNIGHT] = {"Knight", ":/unit/img/knight.png", 3, 3, UNIT_ATTACK_TYPE_MELEE, 1, 500},
-    [UNIT_TYPE_MAGE] = {"Mage", ":/unit/img/mage.png", 4, 4, UNIT_ATTACK_TYPE_RANGED, 4, 600},
-    [UNIT_TYPE_WATER_ELEMENTAL] = {"Water Elemental", ":/unit/img/elemental.png", 5, 5, UNIT_ATTACK_TYPE_MELEE, 1, 750},
-    [UNIT_TYPE_CATAPULT] = {"Catapult", ":/unit/img/catapult.png", 2, 6, UNIT_ATTACK_TYPE_RANGED, 5, 800},
-    [UNIT_TYPE_DRAGON] = {"Dragon", ":/unit/img/dragon2.png", 7, 7, UNIT_ATTACK_TYPE_MELEE, 1, 1000},
+    [UNIT_TYPE_WARRIOR] = {"Warrior", ":/unit/img/militia.png", 4, 3, UNIT_ATTACK_TYPE_MELEE, 1, 100},
+    [UNIT_TYPE_ARCHER] = {"Archer", ":/unit/img/archer.png", 4, 4, UNIT_ATTACK_TYPE_RANGED, 3, 250},
+    [UNIT_TYPE_KNIGHT] = {"Knight", ":/unit/img/knight.png", 3, 6, UNIT_ATTACK_TYPE_MELEE, 1, 450},
+    [UNIT_TYPE_MAGE] = {"Mage", ":/unit/img/mage.png", 4, 6, UNIT_ATTACK_TYPE_RANGED, 4, 600},
+    [UNIT_TYPE_WATER_ELEMENTAL] = {"Water Elemental", ":/unit/img/elemental.png", 5, 8, UNIT_ATTACK_TYPE_MELEE, 1, 750},
+    [UNIT_TYPE_CATAPULT] = {"Catapult", ":/unit/img/catapult.png", 3, 10, UNIT_ATTACK_TYPE_RANGED, 5, 800},
+    [UNIT_TYPE_DRAGON] = {"Dragon", ":/unit/img/dragon2.png", 7, 10, UNIT_ATTACK_TYPE_MELEE, 1, 1000},
 };
 
 Unit::Unit(int x, int y, unit_type t, player_color fraction_color): QObject(nullptr), QGraphicsItemGroup(), coord_x(x), coord_y(y), type(t), fraction(fraction_color)
@@ -60,7 +60,7 @@ Unit::Unit(int x, int y, unit_type t, player_color fraction_color): QObject(null
     health = static_cast<int>(max_health);
     healthText.setDefaultTextColor(Qt::white);
     healthText.setScale(2);
-    healthText.setPos(10, 70);
+    healthText.setPos(5, 50);
 
     Vx = 0;
     Vy = 0;
@@ -98,11 +98,14 @@ int Unit::get_coord_y()
     return coord_y;
 }
 
-unit_combat_outcome Unit::attack(Unit *enemy, int enemyFieldDefenseBonus)
+unit_combat_outcome Unit::attack(SoleField* defenderField)
 {
     unit_combat_outcome outcome = UNIT_COMBAT_NONE;
     const qreal attackingUnitStrengthBonus = 0.1;
     const int minHealthLeftAfterCombatBothDestroyed = 10;
+
+    Unit *enemy = defenderField->get_unit();
+    int enemyFieldDefenseBonus = defenderField->get_defense_bonus();
 
     qreal thisUnitCombatStrength = 0.0;
     qreal thisUnitAttackBonus = 0.0;

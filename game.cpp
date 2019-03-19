@@ -239,6 +239,43 @@ void Game::create_network_thread(QString name, bool createServer, QString host, 
     emit createServer ? create_serv_sig(port) : connect_to_serv_sig(host, port);
 }
 
+void Game::show_console()
+{
+    clear_main_window();
+    QVBoxLayout* layout = new QVBoxLayout;
+    QLineEdit* commandLine = new QLineEdit();
+    commandLine->setAlignment(Qt::AlignCenter);
+    QPushButton *execButton = new QPushButton("Exec");
+
+    connect(execButton, &QPushButton::clicked, [commandLine, this](){
+        QString commandLineText = commandLine->text();
+        QStringList list = commandLineText.split(QRegExp("\\s+"));
+
+        for (auto token: list)
+            qDebug() << token;
+        commandLine->clear();
+
+        if (commandLineText.contains("next"))
+            gameField->next_turn();
+        else if (commandLineText.contains("remove"))
+            gameField->remove_unit_from_gamefield(&gameField->fields[list[1].toInt()][list[2].toInt()]);
+        else if (commandLineText.contains("move"))
+            gameField->move_unit_to_another_field(&gameField->fields[list[1].toInt()][list[2].toInt()],
+                                                  &gameField->fields[list[3].toInt()][list[4].toInt()], list[5].toInt());
+        else if (commandLineText.contains("attack"))
+            gameField->one_unit_attack_another(&gameField->fields[list[1].toInt()][list[2].toInt()],
+                                                  &gameField->fields[list[3].toInt()][list[4].toInt()], list[5].toInt());
+        else if (commandLineText.contains("place"))
+            gameField->place_new_unit_on_gamefield(list[1].toInt(), list[2].toInt(), UNIT_TYPE_DRAGON);
+    });
+
+    layout->addWidget(commandLine);
+    layout->addWidget(execButton);
+    mainWidget->setLayout(layout);
+
+    mainWidget->show();
+}
+
 void Game::show_waiting_for_players_screen(bool isHost)
 {
     clear_main_window();

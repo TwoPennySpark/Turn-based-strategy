@@ -219,26 +219,8 @@ void GameField::keyPressEvent(QKeyEvent *event)
                         if (possibleMovements.value(mark.get_marked_coord_pair()).moveType
                                                             == UNIT_POSSIBLE_MOVE_TYPE_ENEMY_IN_ATTACK_RANGE)
                         {
-                            unit_combat_outcome combatOutcome = selectedUnitField->get_unit()->attack(
-                                        get_marked_field_unit(),
-                                        fields[mark.get_coord_x()][mark.get_coord_y()].get_defense_bonus());
-                            switch (combatOutcome)
-                            {
-                                case UNIT_COMBAT_DEFENDER_DESTROYED:
-                                    remove_unit_from_gamefield(get_marked_field());
-
-                                    if (selectedUnitField->get_unit()->get_attack_type() == UNIT_ATTACK_TYPE_MELEE)
-                                    {
-                                        move_unit_to_another_field(selectedUnitField, get_marked_field(),
-                                                possibleMovements.value(mark.get_marked_coord_pair()).minElapsedSpeed);
-                                    }
-                                    break;
-                                case UNIT_COMBAT_ATTACKER_DESTROYED:
-                                    remove_unit_from_gamefield(selectedUnitField);
-                                    break;
-                                default:
-                                    break;
-                            }
+                            one_unit_attack_another(selectedUnitField, get_marked_field(),
+                                                    possibleMovements.value(mark.get_marked_coord_pair()).minElapsedSpeed);
 
                         }
                         else if (possibleMovements.value(mark.get_marked_coord_pair()).moveType
@@ -316,6 +298,9 @@ void GameField::keyPressEvent(QKeyEvent *event)
             }
             break;
         }
+        case (Qt::Key_F1):
+            game->show_console();
+            break;
         default:
             break;
     }
@@ -375,13 +360,13 @@ void GameField::delete_possible_movements_rect()
 
 void GameField::place_new_unit_on_gamefield(int field_x, int field_y, unit_type type)
 {
-    Unit* newUnit = new Unit(field_x, field_y, type, game->get_player_list()->get_cur_player_color());
-
-    fields[field_x][field_y].set_unit(newUnit);
-
-    addItem(fields[field_x][field_y].get_unit());
-
-    unitsOnGamefield.push_back(newUnit);
+    if (!fields[field_x][field_y].get_unit())
+    {
+        Unit* newUnit = new Unit(field_x, field_y, type, game->get_player_list()->get_cur_player_color());
+        fields[field_x][field_y].set_unit(newUnit);
+        addItem(fields[field_x][field_y].get_unit());
+        unitsOnGamefield.push_back(newUnit);
+    }
 }
 
 void GameField::move_unit_to_another_field(SoleField *from, SoleField *to, int speedElapsed)
@@ -397,7 +382,7 @@ void GameField::move_unit_to_another_field(SoleField *from, SoleField *to, int s
         {
             // if the fraction of the unit being move doesn't
             // coincide with the fraction of the castle
-            // change castle fraction
+            // change castle's fraction
             int castleCoordX = FROM_POS_TO_GAMEFIELD_COORD(to->x());
             int castleCoordY = FROM_POS_TO_GAMEFIELD_COORD(to->y());
             if (castles.value(qMakePair(castleCoordX, castleCoordY)).fraction !=
@@ -412,9 +397,31 @@ void GameField::move_unit_to_another_field(SoleField *from, SoleField *to, int s
 
 void GameField::remove_unit_from_gamefield(SoleField *unitField)
 {
-    removeItem(unitField->get_unit());
-    unitsOnGamefield.removeOne(unitField->get_unit());
-    unitField->del_unit();
+    if (unitField->get_unit())
+    {
+        removeItem(unitField->get_unit());
+        unitsOnGamefield.removeOne(unitField->get_unit());
+        unitField->del_unit();
+    }
+}
+
+void GameField::one_unit_attack_another(SoleField *attackerField, SoleField *defenderField, int minElapsedSpeed)
+{
+    unit_combat_outcome combatOutcome = attackerField->get_unit()->attack(defenderField);
+    switch (combatOutcome)
+    {
+        case UNIT_COMBAT_DEFENDER_DESTROYED:
+            remove_unit_from_gamefield(defenderField);
+
+            if (selectedUnitField->get_unit()->get_attack_type() == UNIT_ATTACK_TYPE_MELEE)
+                move_unit_to_another_field(attackerField, defenderField, minElapsedSpeed);
+            break;
+        case UNIT_COMBAT_ATTACKER_DESTROYED:
+            remove_unit_from_gamefield(attackerField);
+            break;
+        default:
+            break;
+    }
 }
 
 void GameField::update_info_rect()
@@ -751,11 +758,11 @@ int GameField::parse_map_file()
                           (real_estate){PLAYER_NONE, new QGraphicsRectItem(fields[coordX][coordY].x(), fields[coordX][coordY].y(), 15, 15)});
         this->addItem(&fields[coordX][coordY]);
 
-//        QGraphicsTextItem *text  = new QGraphicsTextItem;
-//        text->setPlainText(QString("%1:%2").arg(QString::number(coordX), QString::number(coordY)));
-//        text->setPos(fields[coordX][coordY].x()+10, fields[coordX][coordY].y()+10);
-//        text->setZValue(0.75);
-//        addItem(text);
+        QGraphicsTextItem *text  = new QGraphicsTextItem;
+        text->setPlainText(QString("%1:%2").arg(QString::number(coordX), QString::number(coordY)));
+        text->setPos(fields[coordX][coordY].x()+10, fields[coordX][coordY].y()+10);
+        text->setZValue(0.75);
+        addItem(text);
     }
     return 0;
 }

@@ -44,6 +44,7 @@ public:
     void place_new_unit_on_gamefield(int field_x, int field_y, unit_type type);
     void move_unit_to_another_field(SoleField* from, SoleField* to, int speedElapsed);
     void remove_unit_from_gamefield(SoleField* unitField);
+    void one_unit_attack_another(SoleField* attackerField, SoleField* defenderField, int minElapsedSpeed);
 
     void update_info_rect();
     void update_info_rect_color();

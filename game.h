@@ -49,6 +49,8 @@ public:
 
     void create_network_thread(QString name, bool createServer, QString host, int port);
 
+    void show_console();
+
     GameField *gameField;
 
 private:

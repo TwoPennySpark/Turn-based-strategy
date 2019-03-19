@@ -77,6 +77,7 @@ typedef struct defaultUnitStats
     int cost;
 }defaultUnitStats;
 
+class SoleField;
 
 class Unit: public QObject, public QGraphicsItemGroup
 {
@@ -102,7 +103,7 @@ public:
     player_color get_fraction();
     void get_fraction_name(QString &retName);
 
-    unit_combat_outcome attack(Unit* enemy, int enemyFieldDefenseBonus); // TODO: change two args on SoleField* ?
+    unit_combat_outcome attack(SoleField *defenderField); // TODO: change two args on SoleField* ?
 
     void reset_speed();
     int get_speed_left() const;
