@@ -8,11 +8,13 @@
 #include <QEventLoop>
 #include <QVector>
 #include <QThread>
+#include <sstream>
 
 const int MAX_NAME_LENGTH = 32;
 
 typedef enum pregame_network_commands
 {
+    PREGAME_NW_CMD_PLAYER_NONE = -1,
     PREGAME_NW_CMD_PLAYER_CONNECTED,
     PREGAME_NW_CMD_PLAYER_DISCONNECTED,
     PREGAME_NW_CMD_PLAYER_READY,
@@ -38,7 +40,8 @@ private:
     QVector<QString> playerNames;
 
     void wait_for_players_connections();
-//    void broadcast_player_connected(char* name);
+    void parse_first_server_message(QByteArray &data);
+    void broadcast_player_connected(char* name);
 //    void broadcast_player_disconnected();
 
 public slots:
@@ -51,7 +54,7 @@ public slots:
 signals:
     void network_manager_success(bool isHost);
     void new_player_connected_sig(char *name);
-    void player_disconnected_sig(char *name);
+    void player_disconnected_sig(QString name);
 };
 
 #endif // NETWORKMANAGER_H

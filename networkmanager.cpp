@@ -6,6 +6,52 @@ NetworkManager::NetworkManager(QString name, bool createServer, int playerNum): 
     qDebug() << "THIS PLAYER NAME:" << thisPlayerName;
 }
 
+void NetworkManager::connect_to_server(QString host, unsigned short int port)
+{
+    qDebug() << "<" << QThread::currentThreadId() << ">Attempt connect to " << host << "::" << port << "\n";
+
+    // connect to server
+    QTcpSocket* sock = new QTcpSocket;
+    sock->connectToHost(host, port);
+    if (sock->waitForConnected(1000))
+        qDebug() << "[!]Connected\n";
+
+    // send player's name
+    sock->write(QByteArray(thisPlayerName.toUtf8()));
+    sock->flush();
+
+    // receive list of players names
+    sock->waitForReadyRead(-1);
+    QByteArray data(sock->read(64));
+
+    emit network_manager_success(isHost);
+
+    parse_first_server_message(data);
+
+    socket.push_back(sock);
+}
+
+void NetworkManager::parse_first_server_message(QByteArray& data)
+{
+    std::stringstream ss(data.toStdString());
+    std::string name;
+
+    while (std::getline(ss, name, '\n'))
+    {
+        playerNames.push_back(QString::fromStdString(name));
+        QByteArray arr(name.data());
+        emit new_player_connected_sig(arr.data());
+    }
+    for (auto str: playerNames)
+        qDebug() << str;
+}
+
+void NetworkManager::broadcast_player_connected(char *name)
+{
+    for (auto sock: socket)
+        sock->write(name);
+}
+
 void NetworkManager::create_server(unsigned short int port)
 {
     qDebug() << "<" << QThread::currentThreadId() << "> Attempt to create server on port: " << port << "\n";
@@ -22,26 +68,6 @@ void NetworkManager::create_server(unsigned short int port)
     numOfConnectedPlayers++;
 
     wait_for_players_connections();
-}
-
-void NetworkManager::connect_to_server(QString host, unsigned short int port)
-{
-    qDebug() << "<" << QThread::currentThreadId() << ">Attempt connect to " << host << "::" << port << "\n";
-
-    QTcpSocket* sock = new QTcpSocket;
-    sock->connectToHost(host, port);
-    if (sock->waitForConnected(1000))
-        qDebug() << "[!]Connected\n";
-
-    sock->write(QByteArray(thisPlayerName.toUtf8()));
-    sock->flush();
-
-    sock->waitForReadyRead(-1);
-    QByteArray data(sock->read(64));
-    qDebug() << "List of players:" << data.data();
-
-    socket.push_back(sock);
-    emit network_manager_success(isHost);
 }
 
 void NetworkManager::wait_for_players_connections()
@@ -77,7 +103,7 @@ void NetworkManager::wait_for_players_connections()
         sock->flush();
 
         qDebug() << socket[numOfConnectedPlayers-1] << ":" << playerNames[numOfConnectedPlayers-1] << ":" << numOfConnectedPlayers;
-        new_player_connected_sig(name.data());
+        emit new_player_connected_sig(name.data());
     }
 }
 
@@ -97,6 +123,7 @@ void NetworkManager::player_disconnected_from_this_host(QAbstractSocket::SocketE
 
     int index = socket.indexOf(sock);
     socket.remove(index);
+    emit player_disconnected_sig(playerNames[index]);
     playerNames.remove(index);
 
     sock->close();

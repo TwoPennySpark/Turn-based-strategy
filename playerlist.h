@@ -37,8 +37,9 @@ public:
 
     bool is_player_losing(const player_color playerColor) const;
     void set_player_countdown(const player_color playerColor, bool status);
-    void decrement_countdown(const player_color playerColor);
+    int decrement_countdown(const player_color playerColor);
     int get_turns_left(const player_color playerColor) const;
+    void set_turns_left(const player_color playerColor, int turnsLeft);
     void delete_player(const player_color playerColor);
 
     void show_player_lost_msg_box(const QString &playerName) const;

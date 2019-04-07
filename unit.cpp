@@ -276,16 +276,14 @@ void Unit::pave_the_way(int toCoord_x, int toCoord_y, int elapsedSpeed)
     // moves throught towards the distanation point
     depth_search_for_the_shortest_path(coord_x, coord_y, toCoord_x, toCoord_y, elapsedSpeed);
 
+    // if move animation has already started
+    if (moveTimer.isActive())
+        return;
+
     // remove current coord
     way.pop_front();
 
-//    qDebug() << "DA WEY:\n";
-//    for (int i = 0; i < way.size(); i++)
-//        qDebug() << way[i].first << ":" << way[i].second << "\n";
-
     // start move animation
-    if (moveTimer.isActive())
-        return;
     moveTimer.start(10);
 }
 
@@ -329,7 +327,7 @@ int Unit::depth_search_for_the_shortest_path(int x, int y, int toCoord_x, int to
     }
 
     depth_seach_insert_neighbours(neighbours, x, y, way);
-    for (auto it = neighbours.begin(); it != neighbours.end(); it++)
+    for (auto it = neighbours.cbegin(); it != neighbours.cend(); it++)
         if (depth_search_for_the_shortest_path(it->first, it->second, toCoord_x, toCoord_y, elapsedSpeed))
             return 1;
 

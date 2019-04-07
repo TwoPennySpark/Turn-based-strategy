@@ -50,6 +50,10 @@ GameField::GameField(QGraphicsView *view, QWidget *parent): QGraphicsScene(paren
 //    place_new_unit_on_gamefield(8, 8, UNIT_TYPE_KNIGHT);
 //    place_new_unit_on_gamefield(13, 5, UNIT_TYPE_DRAGON);
 
+//    for (int i = 0; i < gameFieldWidth; i++)
+//        for (int j = 0; j < gameFieldHeight; j++)
+//            place_new_unit_on_gamefield(i, j, UNIT_TYPE_WARRIOR);
+
     update_info_rect();
     update_info_rect_color();
     show_cur_player_rect();
@@ -231,7 +235,7 @@ void GameField::keyPressEvent(QKeyEvent *event)
                         }
 
                     }
-                    delete_possible_movements_rect();
+                    delete_possible_movements_rects();
                     possibleMovements.clear();
                     game->set_state(STATE_BASIC);
                     for (Unit *u: unitsOnGamefield)
@@ -286,7 +290,7 @@ void GameField::keyPressEvent(QKeyEvent *event)
             if (game->get_state() == STATE_UNIT_SELECTED)
             {
                 possibleMovements.clear();
-                delete_possible_movements_rect();
+                delete_possible_movements_rects();
                 game->set_state(STATE_BASIC);
             }
             else if (game->get_state() == STATE_UNIT_PURCHASE)
@@ -300,6 +304,9 @@ void GameField::keyPressEvent(QKeyEvent *event)
         }
         case (Qt::Key_F1):
             game->show_console();
+            break;
+        case (Qt::Key_Control):
+            show_cur_player_rect();
             break;
         default:
             break;
@@ -352,7 +359,7 @@ void GameField::show_possible_movements(QHash<QPair<int, int>, field_info> &poss
     }
 }
 
-void GameField::delete_possible_movements_rect()
+void GameField::delete_possible_movements_rects()
 {
     for(QGraphicsRectItem *rect: posMovesRects)
         rect->hide();
@@ -364,7 +371,9 @@ void GameField::place_new_unit_on_gamefield(int field_x, int field_y, unit_type 
     {
         Unit* newUnit = new Unit(field_x, field_y, type, game->get_player_list()->get_cur_player_color());
         fields[field_x][field_y].set_unit(newUnit);
+
         addItem(fields[field_x][field_y].get_unit());
+
         unitsOnGamefield.push_back(newUnit);
     }
 }
@@ -758,17 +767,25 @@ int GameField::parse_map_file()
                           (real_estate){PLAYER_NONE, new QGraphicsRectItem(fields[coordX][coordY].x(), fields[coordX][coordY].y(), 15, 15)});
         this->addItem(&fields[coordX][coordY]);
 
-        QGraphicsTextItem *text  = new QGraphicsTextItem;
-        text->setPlainText(QString("%1:%2").arg(QString::number(coordX), QString::number(coordY)));
-        text->setPos(fields[coordX][coordY].x()+10, fields[coordX][coordY].y()+10);
-        text->setZValue(0.75);
-        addItem(text);
+//        QGraphicsTextItem *text  = new QGraphicsTextItem;
+//        text->setPlainText(QString("%1:%2").arg(QString::number(coordX), QString::number(coordY)));
+//        text->setPos(fields[coordX][coordY].x()+10, fields[coordX][coordY].y()+10);
+//        text->setZValue(0.75);
+//        addItem(text);
     }
+
     return 0;
 }
 
 void GameField::next_turn()
 {
+    player_color curPlayer = game->get_player_list()->get_cur_player_color();
+    if (game->get_player_list()->is_player_losing(curPlayer))
+        if (game->get_player_list()->decrement_countdown(curPlayer))
+        {
+            delete_players_items(curPlayer);
+        }
+
     game->next_turn();
 
     update_hud();
@@ -793,6 +810,22 @@ int GameField::get_width()
 int GameField::get_height()
 {
     return gameFieldHeight;
+}
+
+void GameField::delete_players_items(player_color playerColor)
+{
+    for (auto it = castles.begin(); it != castles.end(); it++)
+        if (it.value().fraction == playerColor)
+            set_new_castle_owner(it.key(), PLAYER_NONE);
+
+    auto it = unitsOnGamefield.begin();
+    while (it != unitsOnGamefield.end())
+    {
+        if ((*it)->get_fraction() == playerColor)
+            remove_unit_from_gamefield(&fields[(*it)->get_coord_x()][(*it)->get_coord_y()]);
+        else
+            it++;
+    }
 }
 
 void GameField::update_hud()

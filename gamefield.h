@@ -39,7 +39,7 @@ public:
 
     void calculate_and_show_possible_movements(QHash<QPair<int, int>, field_info> &possibleMovements);
     void show_possible_movements(QHash<QPair<int, int>, field_info>& possibleMovements);
-    void delete_possible_movements_rect();
+    void delete_possible_movements_rects();
 
     void place_new_unit_on_gamefield(int field_x, int field_y, unit_type type);
     void move_unit_to_another_field(SoleField* from, SoleField* to, int speedElapsed);
@@ -73,6 +73,8 @@ public:
     int get_width();
     int get_height();
 
+    void delete_players_items(player_color playerColor);
+
     SoleField** fields;
 
 private:
@@ -94,14 +96,13 @@ private:
 
     QGraphicsItemGroup *hud;
     QGraphicsTextItem *moneyAmountText;
-    QGraphicsTextItem *turnsLeftBeforeLosingText;
 
     SoleField* selectedUnitField;
     QVector<QGraphicsRectItem*> posMovesRects;
 
     QVector<Unit*> unitsOnGamefield;
-    QHash<QPair<int, int>, real_estate> castles;
-    QHash<QPair<int, int>, real_estate> houses;
+    QMap<QPair<int, int>, real_estate> castles;
+    QMap<QPair<int, int>, real_estate> houses;
 
     QGraphicsItemGroup* infoRectGroup;
     QGraphicsTextItem *infoRectText;

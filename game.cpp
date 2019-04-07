@@ -230,7 +230,7 @@ void Game::create_network_thread(QString name, bool createServer, QString host, 
     netMng = new NetworkManager(name, createServer, max_player_num);
     connect(this, &Game::create_serv_sig, netMng, &NetworkManager::create_server);
     connect(this, &Game::connect_to_serv_sig, netMng, &NetworkManager::connect_to_server);
-    connect(netMng, &NetworkManager::network_manager_success, this, &Game::show_waiting_for_players_screen);
+    connect(netMng, &NetworkManager::network_manager_success, this, &Game::show_waiting_for_players_screen, Qt::BlockingQueuedConnection);
 
     networkThread = new QThread;
     networkThread->start();
@@ -242,6 +242,7 @@ void Game::create_network_thread(QString name, bool createServer, QString host, 
 void Game::show_console()
 {
     clear_main_window();
+
     QVBoxLayout* layout = new QVBoxLayout;
     QLineEdit* commandLine = new QLineEdit();
     commandLine->setAlignment(Qt::AlignCenter);
@@ -255,18 +256,26 @@ void Game::show_console()
             qDebug() << token;
         commandLine->clear();
 
-        if (commandLineText.contains("next"))
+        if (commandLineText == "next")
             gameField->next_turn();
-        else if (commandLineText.contains("remove"))
-            gameField->remove_unit_from_gamefield(&gameField->fields[list[1].toInt()][list[2].toInt()]);
-        else if (commandLineText.contains("move"))
+        else if (commandLineText == "move")
             gameField->move_unit_to_another_field(&gameField->fields[list[1].toInt()][list[2].toInt()],
                                                   &gameField->fields[list[3].toInt()][list[4].toInt()], list[5].toInt());
-        else if (commandLineText.contains("attack"))
+        else if (commandLineText == "attack")
             gameField->one_unit_attack_another(&gameField->fields[list[1].toInt()][list[2].toInt()],
-                                                  &gameField->fields[list[3].toInt()][list[4].toInt()], list[5].toInt());
-        else if (commandLineText.contains("place"))
+                                               &gameField->fields[list[3].toInt()][list[4].toInt()], list[5].toInt());
+        else if (commandLineText == "place")
             gameField->place_new_unit_on_gamefield(list[1].toInt(), list[2].toInt(), UNIT_TYPE_DRAGON);
+        else if (list[0] == "remove")
+            gameField->remove_unit_from_gamefield(&gameField->fields[list[1].toInt()][list[2].toInt()]);
+        else if (commandLineText.contains("del"))
+        {
+            player_color pc = playerList->get_cur_player_color();
+            gameField->delete_players_items(static_cast<player_color>(list[1].toInt()));
+            playerList->delete_player(static_cast<player_color>(list[1].toInt()));
+            if (static_cast<player_color>(list[1].toInt()) == pc)
+                gameField->next_turn();
+        }
     });
 
     layout->addWidget(commandLine);
@@ -293,7 +302,7 @@ void Game::show_waiting_for_players_screen(bool isHost)
         QString playerList; for (auto name: playerNames) playerList += name +"\n"; playersListLabel->setText(playerList);
     });
 
-    connect(netMng, &NetworkManager::player_disconnected_sig, [playersReadyLabel, playersListLabel, this](char *newName)
+    connect(netMng, &NetworkManager::player_disconnected_sig, [playersReadyLabel, playersListLabel, this](QString newName)
     {
         playerNum--; playerNames.removeOne(newName); playersListLabel->text().clear();
         playersReadyLabel->setText(QString("Players ready:%1/%2").arg(QString::number(playerNum), QString::number(max_player_num)));
