@@ -194,6 +194,10 @@ void GameField::keyPressEvent(QKeyEvent *event)
         case (Qt::Key_Return):
             if (game->get_state() == STATE_BASIC)
             {
+                player_color curPlayer = game->get_player_list()->get_cur_player_color();
+                if (game->get_player_list()->is_player_losing(curPlayer))
+                    if (game->get_player_list()->decrement_countdown(curPlayer))
+                        delete_players_items(curPlayer);
                 next_turn();
             }
             break;
@@ -779,13 +783,6 @@ int GameField::parse_map_file()
 
 void GameField::next_turn()
 {
-    player_color curPlayer = game->get_player_list()->get_cur_player_color();
-    if (game->get_player_list()->is_player_losing(curPlayer))
-        if (game->get_player_list()->decrement_countdown(curPlayer))
-        {
-            delete_players_items(curPlayer);
-        }
-
     game->next_turn();
 
     update_hud();

@@ -36,8 +36,8 @@ void Game::create_players()
     mainWidget->hide();
 
     playerNum = 4;
-    if (playerNum > max_player_num)
-        playerNum = max_player_num;
+    if (playerNum > PLAYER_MAX)
+        playerNum = PLAYER_MAX;
     playerNames.reserve(playerNum);
 
     QString temp;
@@ -225,18 +225,55 @@ void Game::show_create_serv_menu(QString name)
     mainWidget->setLayout(createServLayout);
 }
 
-void Game::create_network_thread(QString name, bool createServer, QString host, int port)
+void Game::create_network_thread(QString name, bool createServer, QString host, quint16 port)
 {
-    netMng = new NetworkManager(name, createServer, max_player_num);
-    connect(this, &Game::create_serv_sig, netMng, &NetworkManager::create_server);
-    connect(this, &Game::connect_to_serv_sig, netMng, &NetworkManager::connect_to_server);
+    createServer ? (netMng = new NetworkHost(name, port, PLAYER_MAX)) : (netMng = new NetworkClient(name, host, port));
+    connect(this, &Game::network_initial_setup, netMng, &NetworkManager::initial_setup);
     connect(netMng, &NetworkManager::network_manager_success, this, &Game::show_waiting_for_players_screen, Qt::BlockingQueuedConnection);
 
     networkThread = new QThread;
     networkThread->start();
     netMng->moveToThread(networkThread);
 
-    emit createServer ? create_serv_sig(port) : connect_to_serv_sig(host, port);
+    emit network_initial_setup();
+}
+
+void Game::show_waiting_for_players_screen(bool isHost)
+{
+    clear_main_window();
+
+//    playerNum++;
+
+    QVBoxLayout* layout = new QVBoxLayout;
+    QLabel* playersReadyLabel = new QLabel("Players ready:1/4");
+    QLabel* playersListLabel = new QLabel("");
+
+    connect(netMng, &NetworkManager::new_player_connected_sig, [playersReadyLabel, playersListLabel, this](QString newName)
+    {
+        playerNum++; playerNames.push_back(newName); playersListLabel->text().clear();
+        playersReadyLabel->setText(QString("Players ready:%1/%2").arg(QString::number(playerNum), QString::number(PLAYER_MAX)));
+        QString playerList; for (auto name: playerNames) playerList += name +"\n"; playersListLabel->setText(playerList);
+    });
+
+    connect(netMng, &NetworkManager::player_disconnected_sig, [playersReadyLabel, playersListLabel, this](QString newName)
+    {
+        playerNum--; playerNames.removeOne(newName); playersListLabel->text().clear();
+        playersReadyLabel->setText(QString("Players ready:%1/%2").arg(QString::number(playerNum), QString::number(PLAYER_MAX)));
+        QString playerList; for (auto name: playerNames) {qDebug() << name ;playerList += name +"\n";} playersListLabel->setText(playerList);
+    });
+
+    QPushButton* startButton = new QPushButton(isHost ? "Start" : "Ready");
+
+    QPushButton* disconnectButton = new QPushButton("Disconnect");
+    connect(disconnectButton, &QPushButton::clicked, netMng, &NetworkManager::this_player_disconnected);
+    connect(disconnectButton, &QPushButton::clicked, [this](){this->clear_main_window(); this->show_main_menu();});
+
+    layout->addWidget(playersReadyLabel);
+    layout->addWidget(playersListLabel);
+    layout->addWidget(startButton);
+    layout->addWidget(disconnectButton);
+
+    mainWidget->setLayout(layout);
 }
 
 void Game::show_console()
@@ -256,15 +293,15 @@ void Game::show_console()
             qDebug() << token;
         commandLine->clear();
 
-        if (commandLineText == "next")
+        if (list[0] == "next")
             gameField->next_turn();
-        else if (commandLineText == "move")
+        else if (list[0] == "move")
             gameField->move_unit_to_another_field(&gameField->fields[list[1].toInt()][list[2].toInt()],
                                                   &gameField->fields[list[3].toInt()][list[4].toInt()], list[5].toInt());
-        else if (commandLineText == "attack")
+        else if (list[0] == "attack")
             gameField->one_unit_attack_another(&gameField->fields[list[1].toInt()][list[2].toInt()],
                                                &gameField->fields[list[3].toInt()][list[4].toInt()], list[5].toInt());
-        else if (commandLineText == "place")
+        else if (list[0] == "place")
             gameField->place_new_unit_on_gamefield(list[1].toInt(), list[2].toInt(), UNIT_TYPE_DRAGON);
         else if (list[0] == "remove")
             gameField->remove_unit_from_gamefield(&gameField->fields[list[1].toInt()][list[2].toInt()]);
@@ -283,43 +320,6 @@ void Game::show_console()
     mainWidget->setLayout(layout);
 
     mainWidget->show();
-}
-
-void Game::show_waiting_for_players_screen(bool isHost)
-{
-    clear_main_window();
-
-    playerNum++;
-
-    QVBoxLayout* layout = new QVBoxLayout;
-    QLabel* playersReadyLabel = new QLabel("Players ready:1/4");
-    QLabel* playersListLabel = new QLabel("");
-
-    connect(netMng, &NetworkManager::new_player_connected_sig, [playersReadyLabel, playersListLabel, this](char *newName)
-    {
-        playerNum++; playerNames.push_back(newName); playersListLabel->text().clear();
-        playersReadyLabel->setText(QString("Players ready:%1/%2").arg(QString::number(playerNum), QString::number(max_player_num)));
-        QString playerList; for (auto name: playerNames) playerList += name +"\n"; playersListLabel->setText(playerList);
-    });
-
-    connect(netMng, &NetworkManager::player_disconnected_sig, [playersReadyLabel, playersListLabel, this](QString newName)
-    {
-        playerNum--; playerNames.removeOne(newName); playersListLabel->text().clear();
-        playersReadyLabel->setText(QString("Players ready:%1/%2").arg(QString::number(playerNum), QString::number(max_player_num)));
-        QString playerList; for (auto name: playerNames) playerList += name +"\n"; playersListLabel->setText(playerList);
-    });
-
-    QPushButton* startButton = new QPushButton(isHost ? "Start" : "Ready");
-
-    QPushButton* disconnectButton = new QPushButton("Disconnect");
-    connect(disconnectButton, &QPushButton::clicked, netMng, &NetworkManager::this_player_disconnected);
-
-    layout->addWidget(playersReadyLabel);
-    layout->addWidget(playersListLabel);
-    layout->addWidget(startButton);
-    layout->addWidget(disconnectButton);
-
-    mainWidget->setLayout(layout);
 }
 
 void Game::clear_main_window()

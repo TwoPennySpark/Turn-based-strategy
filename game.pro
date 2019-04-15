@@ -24,6 +24,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 CONFIG += c++11
 
+LIBS += -lprotobuf
+
 SOURCES += \
         main.cpp \
     unit.cpp \
@@ -32,7 +34,10 @@ SOURCES += \
     game.cpp \
     solefield.cpp \
     networkmanager.cpp \
-    playerlist.cpp
+    playerlist.cpp \
+    networkclient.cpp \
+    networkhost.cpp \
+    ntwrkCmd.pb.cc
 
 HEADERS += \
     gamefield.h \
@@ -42,7 +47,10 @@ HEADERS += \
     unit.h \
     solefield.h \
     networkmanager.h \
-    playerlist.h
+    playerlist.h \
+    networkclient.h \
+    networkhost.h \
+    ntwrkCmd.pb.h
 
 FORMS += \
         mainwindow.ui
@@ -54,3 +62,6 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 RESOURCES += \
     res.qrc
+
+DISTFILES += \
+    ntwrkCmd.proto

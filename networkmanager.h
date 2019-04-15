@@ -9,51 +9,65 @@
 #include <QVector>
 #include <QThread>
 #include <sstream>
+#include <QDataStream>
+#include "ntwrkCmd.pb.h"
 
 const int MAX_NAME_LENGTH = 32;
 
-typedef enum pregame_network_commands
+typedef enum pregame_network_cmd_types
 {
-    PREGAME_NW_CMD_PLAYER_NONE = -1,
+    PREGAME_NW_CMD_PLAYER_NONE,
     PREGAME_NW_CMD_PLAYER_CONNECTED,
     PREGAME_NW_CMD_PLAYER_DISCONNECTED,
     PREGAME_NW_CMD_PLAYER_READY,
     PREGAME_NW_CMD_START_GAME
-}pregame_network_commands;
+}pregame_network_cmd_types;
+
+typedef enum ingame_network_cmd_types
+{
+    INGAME_NW_CMD_NONE,
+    INGAME_NW_CMD_PLAYER_RECONNECTED,
+    INGAME_NW_CMD_PLAYER_DISCONNECTED,
+    INGAME_NW_CMD_NEXT_TURN,
+    INGAME_NW_CMD_MOVE_UNIT,
+    INGAME_NW_CMD_ATTACK_UNIT,
+    INGAME_NW_CMD_PLACE_UNIT,
+    INGAME_NW_CMD_REMOVE_UNIT
+}ingame_network_cmd_types;
+
+int byteArrayToInt(QByteArray& arr);
 
 class NetworkManager: public QObject
 {
     Q_OBJECT
 
-public:
-    NetworkManager(QString name, bool createServer, int playerNum);
-
-private:
-    const int maxNumOfPlayers;
-    int numOfConnectedPlayers;
+protected:
+    NetworkManager();
+    const unsigned int LENGTH_PREFIX_SIZE = sizeof(int32_t);
+//    int numOfConnectedPlayers;
 
     bool isHost;
 
-    QString thisPlayerName;
-    QTcpServer* server;
-    QVector<QTcpSocket*> socket;
+    int curPlayerIndex;
+    bool isPrefixRead;
+    int frameSize;
+
+    QByteArray data;
+
+//    QString thisPlayerName;
     QVector<QString> playerNames;
 
-    void wait_for_players_connections();
-    void parse_first_server_message(QByteArray &data);
-    void broadcast_player_connected(char* name);
-//    void broadcast_player_disconnected();
+//    virtual void read_frame_size_prefix() = 0;
+//    virtual void read_and_parse_frame() = 0;
 
 public slots:
-    void create_server(unsigned short port);
-    void connect_to_server(QString host, unsigned short port);
-    void player_disconnected_from_this_host(void);
-    void player_disconnected_from_this_host(QAbstractSocket::SocketError sockError);
-    void this_player_disconnected();
+    virtual void initial_setup() = 0;
+//    virtual void readyRead() = 0;
+    virtual void this_player_disconnected() = 0;
 
 signals:
     void network_manager_success(bool isHost);
-    void new_player_connected_sig(char *name);
+    void new_player_connected_sig(QString name);
     void player_disconnected_sig(QString name);
 };
 

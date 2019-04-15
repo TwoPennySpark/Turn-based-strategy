@@ -1,6 +1,5 @@
 #include "playerlist.h"
 
-
 PlayerList::PlayerList(QVector<QString>& playerNames)
 {
     playerNum = playersLeft = playerNames.size();
@@ -108,6 +107,9 @@ void PlayerList::set_turns_left(const player_color playerColor, int turnsLeft)
 void PlayerList::delete_player(const player_color playerColor)
 {
     show_player_lost_msg_box(find_player_by_color(playerColor)->name);
+
+    if (playerColor == get_cur_player_color())
+        curPlayerIndex--;
 
     players.removeOne(find_player_by_color(playerColor));
 

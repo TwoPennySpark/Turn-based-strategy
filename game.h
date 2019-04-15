@@ -11,6 +11,8 @@
 #include "gamefield.h"
 #include "playerlist.h"
 #include "networkmanager.h"
+#include "networkclient.h"
+#include "networkhost.h"
 
 typedef enum cur_player_state
 {
@@ -47,14 +49,20 @@ public:
     void show_create_serv_menu(QString name);
     void clear_main_window();
 
-    void create_network_thread(QString name, bool createServer, QString host, int port);
+    void create_network_thread(QString name, bool createServer, QString host, quint16 port);
 
     void show_console();
 
     GameField *gameField;
 
 private:
-    const int max_player_num = 4;
+
+    union
+    {
+          NetworkClient* netClnt;
+          NetworkHost* netHost;
+    };
+
     int playerNum;
 
     void create_players();
@@ -73,8 +81,9 @@ private:
 signals:
     void finished();
 
-    void create_serv_sig(int port);
-    void connect_to_serv_sig(QString host, int port);
+    void network_initial_setup();
+//    void create_serv_sig(int port);
+//    void connect_to_serv_sig(QString host, int port);
 
 public slots:
     void show_waiting_for_players_screen(bool isHost);

@@ -1,0 +1,35 @@
+syntax = "proto2";
+
+message preGameCmd
+{
+    enum preGameCmdTypes
+    {
+        PREGAME_NW_CMD_NONE = 0;
+        PREGAME_NW_CMD_PLAYER_CONNECTED = 1;
+        PREGAME_NW_CMD_PLAYER_DISCONNECTED = 2;
+        PREGAME_NW_CMD_PLAYER_READY = 3;
+        PREGAME_NW_CMD_START_GAME = 4;
+    }
+
+    required fixed32 type = 1 [default = 0];
+    optional string name = 2;
+    optional fixed32 indexNum = 3;
+}
+
+message inGameCmd
+{
+    enum inGameCmdTypes
+    {
+        INGAME_NW_CMD_NONE = 0;
+        INGAME_NW_CMD_PLAYER_RECONNECTED = 1;
+        INGAME_NW_CMD_PLAYER_DISCONNECTED = 2;
+        INGAME_NW_CMD_NEXT_TURN = 3;
+        INGAME_NW_CMD_MOVE_UNIT = 4;
+        INGAME_NW_CMD_ATTACK_UNIT = 5;
+        INGAME_NW_CMD_PLACE_UNIT = 6;
+        INGAME_NW_CMD_REMOVE_UNIT = 7;
+    }
+
+    required fixed32 type = 1 [default = 0];
+    repeated fixed32 args = 2;
+}
