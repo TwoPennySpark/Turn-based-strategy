@@ -57,7 +57,7 @@ MarkField::~MarkField()
     delete polygon4;
 }
 
-void MarkField::move(int field_x, int field_y)
+void MarkField::move(uint field_x, uint field_y)
 {
     setPos(FROM_GAMEFIELD_TO_POS_COORD(field_x),
            FROM_GAMEFIELD_TO_POS_COORD(field_y));
@@ -65,12 +65,12 @@ void MarkField::move(int field_x, int field_y)
     markCoord_Y = field_y;
 }
 
-int MarkField::get_coord_x()
+uint MarkField::get_coord_x()
 {
     return markCoord_X;
 }
 
-int MarkField::get_coord_y()
+uint MarkField::get_coord_y()
 {
     return markCoord_Y;
 }

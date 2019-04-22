@@ -8,18 +8,20 @@
 
 class MarkField: public QGraphicsItemGroup
 {
+
 public:
     MarkField();
     ~MarkField();
 
-    void move(int field_x, int field_y);
-    int get_coord_x();
-    int get_coord_y();
+    void move(uint field_x, uint field_y);
+    uint get_coord_x();
+    uint get_coord_y();
 
     QPair<int, int>& get_marked_coord_pair();
+
 private:
-    int markCoord_X;
-    int markCoord_Y;
+    uint markCoord_X;
+    uint markCoord_Y;
     QPair<int, int> markCoordPair;
 
     QGraphicsPolygonItem* polygon1;

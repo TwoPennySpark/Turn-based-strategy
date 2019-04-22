@@ -7,6 +7,9 @@ Game::Game()
 {
     mainWidget = new QWidget;
 
+    thisPlayerTurn = false;
+    isMultiplayerGame = false;
+
     playerNum = 0;
 }
 
@@ -24,11 +27,6 @@ Game::~Game()
 PlayerList* Game::get_player_list() const
 {
     return playerList;
-}
-
-void Game::next_turn()
-{
-    playerList->next_turn();
 }
 
 void Game::create_players()
@@ -113,6 +111,7 @@ void Game::start_hot_seat()
     view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     create_players();
+    thisPlayerTurn = true;
     state = STATE_BASIC;
     gameField = new GameField(view);
 }
@@ -156,7 +155,7 @@ void Game::show_main_menu()
 
     QPushButton* exitButton = new QPushButton("Exit");
     mainMenuLayout->addWidget(exitButton);
-    connect(exitButton, &QPushButton::clicked, [&](){this->deleteLater(); emit finished();});
+    connect(exitButton, &QPushButton::clicked, [&](){this->clear_main_window(); this->deleteLater(); emit finished();});
 
     mainWidget->setLayout(mainMenuLayout);
 
@@ -229,7 +228,9 @@ void Game::create_network_thread(QString name, bool createServer, QString host, 
 {
     createServer ? (netMng = new NetworkHost(name, port, PLAYER_MAX)) : (netMng = new NetworkClient(name, host, port));
     connect(this, &Game::network_initial_setup, netMng, &NetworkManager::initial_setup);
+    connect(this, &Game::send_ingame_cmd, netMng, &NetworkManager::get_and_send_ingame_cmd);
     connect(netMng, &NetworkManager::network_manager_success, this, &Game::show_waiting_for_players_screen, Qt::BlockingQueuedConnection);
+    connect(netMng, &NetworkManager::this_player_turn, this, &Game::set_this_player_turn_true);
 
     networkThread = new QThread;
     networkThread->start();
@@ -242,7 +243,7 @@ void Game::show_waiting_for_players_screen(bool isHost)
 {
     clear_main_window();
 
-//    playerNum++;
+    isMultiplayerGame = true;
 
     QVBoxLayout* layout = new QVBoxLayout;
     QLabel* playersReadyLabel = new QLabel("Players ready:1/4");
@@ -274,6 +275,11 @@ void Game::show_waiting_for_players_screen(bool isHost)
     layout->addWidget(disconnectButton);
 
     mainWidget->setLayout(layout);
+}
+
+void Game::set_this_player_turn_true()
+{
+    thisPlayerTurn = true;
 }
 
 void Game::show_console()
@@ -308,10 +314,17 @@ void Game::show_console()
         else if (commandLineText.contains("del"))
         {
             player_color pc = playerList->get_cur_player_color();
-            gameField->delete_players_items(static_cast<player_color>(list[1].toInt()));
-            playerList->delete_player(static_cast<player_color>(list[1].toInt()));
             if (static_cast<player_color>(list[1].toInt()) == pc)
+            {
+                playerList->set_player_countdown(pc, true);
+                playerList->set_turns_left(pc, -1);
                 gameField->next_turn();
+            }
+            else
+            {
+                gameField->delete_players_items(static_cast<player_color>(list[1].toInt()));
+                playerList->delete_player(static_cast<player_color>(list[1].toInt()));
+            }
         }
     });
 
@@ -320,6 +333,21 @@ void Game::show_console()
     mainWidget->setLayout(layout);
 
     mainWidget->show();
+}
+
+bool Game::is_this_player_turn()
+{
+    return thisPlayerTurn;
+}
+
+void Game::set_this_player_turn(bool val)
+{
+    thisPlayerTurn = val;
+}
+
+bool Game::is_multiplayer_game()
+{
+    return isMultiplayerGame;
 }
 
 void Game::clear_main_window()

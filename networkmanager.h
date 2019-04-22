@@ -12,7 +12,8 @@
 #include <QDataStream>
 #include "ntwrkCmd.pb.h"
 
-const int MAX_NAME_LENGTH = 32;
+const uint MAX_NAME_LENGTH = 32;
+const uint LENGTH_PREFIX_SIZE = sizeof(int32_t);
 
 typedef enum pregame_network_cmd_types
 {
@@ -43,10 +44,10 @@ class NetworkManager: public QObject
 
 protected:
     NetworkManager();
-    const unsigned int LENGTH_PREFIX_SIZE = sizeof(int32_t);
 //    int numOfConnectedPlayers;
 
     bool isHost;
+    int playerNum;
 
     int curPlayerIndex;
     bool isPrefixRead;
@@ -64,8 +65,10 @@ public slots:
     virtual void initial_setup() = 0;
 //    virtual void readyRead() = 0;
     virtual void this_player_disconnected() = 0;
+    virtual void get_and_send_ingame_cmd(ingame_network_cmd_types type, QVector<uint>& args) = 0;
 
 signals:
+    void this_player_turn();
     void network_manager_success(bool isHost);
     void new_player_connected_sig(QString name);
     void player_disconnected_sig(QString name);

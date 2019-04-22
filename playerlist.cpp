@@ -2,8 +2,8 @@
 
 PlayerList::PlayerList(QVector<QString>& playerNames)
 {
-    playerNum = playersLeft = playerNames.size();
-    for (int i = 0; i < playersLeft; i++)
+    playerNum = playerNames.size();
+    for (int i = 0; i < playerNum; i++)
     {
         players.push_back(new player);
         players[i]->color = static_cast<player_color>(i);
@@ -15,6 +15,8 @@ PlayerList::PlayerList(QVector<QString>& playerNames)
     }
 
     curPlayerIndex = 0;
+
+    curPlayerIt = players.begin();
 }
 
 PlayerList::~PlayerList()
@@ -25,8 +27,9 @@ PlayerList::~PlayerList()
 
 void PlayerList::next_turn()
 {
-    curPlayerIndex = (curPlayerIndex+1) % playersLeft;
-    change_cur_player_money_amount(players[curPlayerIndex]->income);
+    curPlayerIt++;
+    if (curPlayerIt == players.end())
+        curPlayerIt = players.begin();
 }
 
 player *PlayerList::find_player_by_color(const player_color playerColor) const
@@ -40,22 +43,22 @@ player *PlayerList::find_player_by_color(const player_color playerColor) const
 
 player_color PlayerList::get_cur_player_color() const
 {
-    return players[curPlayerIndex]->color;
+    return (*curPlayerIt)->color;
 }
 
 int PlayerList::get_cur_player_money() const
 {
-    return players[curPlayerIndex]->money;
+    return (*curPlayerIt)->money;
 }
 
 int PlayerList::get_cur_player_income() const
 {
-    return players[curPlayerIndex]->income;
+    return (*curPlayerIt)->income;
 }
 
 void PlayerList::get_cur_player_name(QString &retName) const
 {
-    retName = players[curPlayerIndex]->name;
+    retName = (*curPlayerIt)->name;
 }
 
 void PlayerList::change_player_income(const player_color playerColor, const int change)
@@ -65,7 +68,7 @@ void PlayerList::change_player_income(const player_color playerColor, const int 
 
 void PlayerList::change_cur_player_money_amount(const int change)
 {
-    players[curPlayerIndex]->money += change;
+    (*curPlayerIt)->money += change;
 }
 
 bool PlayerList::is_player_losing(const player_color playerColor) const
@@ -86,11 +89,8 @@ int PlayerList::decrement_countdown(const player_color playerColor)
     player* p = find_player_by_color(playerColor);
     if (p->isLosing)
         if (--p->turnsBeforeLosing < 0)
-        {
-            curPlayerIndex--;
-            delete_player(p->color);
             return 1;
-        }
+
     return 0;
 }
 
@@ -109,15 +109,20 @@ void PlayerList::delete_player(const player_color playerColor)
     show_player_lost_msg_box(find_player_by_color(playerColor)->name);
 
     if (playerColor == get_cur_player_color())
-        curPlayerIndex--;
-
-    players.removeOne(find_player_by_color(playerColor));
-
-    if (--playersLeft == 1)
     {
-        next_turn();
-        show_player_won_msg_box(players[curPlayerIndex]->name);
+        curPlayerIt = players.erase(curPlayerIt);
+        if (curPlayerIt == players.end())
+            curPlayerIt = players.begin();
     }
+    else
+    {
+        player_color curPlayerColor = (*curPlayerIt)->color;
+        players.removeOne(find_player_by_color(playerColor));
+        curPlayerIt = &players[players.indexOf(find_player_by_color(curPlayerColor))];
+    }
+
+    if (players.size() == 1)
+        show_player_won_msg_box((*curPlayerIt)->name);
 }
 
 void PlayerList::show_player_lost_msg_box(const QString& playerName) const

@@ -34,8 +34,6 @@ public:
 
     PlayerList *get_player_list() const;
 
-    void next_turn();
-
     void set_state(const cur_player_state newState);
     cur_player_state get_state() const;
 
@@ -53,16 +51,13 @@ public:
 
     void show_console();
 
+    bool is_this_player_turn();
+    void set_this_player_turn(bool val);
+    bool is_multiplayer_game();
+
     GameField *gameField;
 
 private:
-
-    union
-    {
-          NetworkClient* netClnt;
-          NetworkHost* netHost;
-    };
-
     int playerNum;
 
     void create_players();
@@ -75,6 +70,8 @@ private:
 
     QWidget* mainWidget;
 
+    bool isMultiplayerGame;
+    bool thisPlayerTurn;
     NetworkManager* netMng;
     QThread* networkThread;
 
@@ -82,11 +79,13 @@ signals:
     void finished();
 
     void network_initial_setup();
+    void send_ingame_cmd(ingame_network_cmd_types type, QVector<uint>& args);
 //    void create_serv_sig(int port);
 //    void connect_to_serv_sig(QString host, int port);
 
 public slots:
     void show_waiting_for_players_screen(bool isHost);
+    void set_this_player_turn_true();
 };
 
 #endif // GAME_H

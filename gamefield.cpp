@@ -25,6 +25,8 @@ GameField::GameField(QGraphicsView *view, QWidget *parent): QGraphicsScene(paren
     prepare_cur_player_rect();
 
     create_gamefield();
+    game->get_player_list()->change_player_income(game->get_player_list()->get_cur_player_color(),
+                                                  game->get_player_list()->get_cur_player_income());
 
     view->show();
 
@@ -85,13 +87,18 @@ GameField::~GameField()
     delete[] descriptionString;
 
     delete unitPurchaseSceneGroup;
-
-    qDebug() << "GAMEFIELD DESTR\n";
 }
 
 void GameField::keyPressEvent(QKeyEvent *event)
 {
     static QHash<QPair<int, int>, field_info> possibleMovements;
+
+    if (!game->is_this_player_turn() &&
+      !(event->key() == Qt::Key_W || event->key() == Qt::Key_Up ||
+        event->key() == Qt::Key_A || event->key() == Qt::Key_Left ||
+        event->key() == Qt::Key_D || event->key() == Qt::Key_Right ||
+        event->key() == Qt::Key_S || event->key() == Qt::Key_Down ))
+        return;
 
     switch (event->key())
     {
@@ -194,10 +201,10 @@ void GameField::keyPressEvent(QKeyEvent *event)
         case (Qt::Key_Return):
             if (game->get_state() == STATE_BASIC)
             {
-                player_color curPlayer = game->get_player_list()->get_cur_player_color();
-                if (game->get_player_list()->is_player_losing(curPlayer))
-                    if (game->get_player_list()->decrement_countdown(curPlayer))
-                        delete_players_items(curPlayer);
+//                player_color curPlayer = game->get_player_list()->get_cur_player_color();
+//                if (game->get_player_list()->is_player_losing(curPlayer))
+//                    if (game->get_player_list()->decrement_countdown(curPlayer))
+//                        delete_players_items(curPlayer);
                 next_turn();
             }
             break;
@@ -227,6 +234,13 @@ void GameField::keyPressEvent(QKeyEvent *event)
                         if (possibleMovements.value(mark.get_marked_coord_pair()).moveType
                                                             == UNIT_POSSIBLE_MOVE_TYPE_ENEMY_IN_ATTACK_RANGE)
                         {
+                            emit;
+                            send_ingame_cmd(INGAME_NW_CMD_ATTACK_UNIT,{  FROM_POS_TO_GAMEFIELD_COORD(selectedUnitField->x()),
+                                                                         FROM_POS_TO_GAMEFIELD_COORD(selectedUnitField->y()),
+                                                                         FROM_POS_TO_GAMEFIELD_COORD(get_marked_field()->x()),
+                                                                         FROM_POS_TO_GAMEFIELD_COORD(get_marked_field()->y()),
+                                                                         possibleMovements.value(mark.get_marked_coord_pair()).minElapsedSpeed});
+
                             one_unit_attack_another(selectedUnitField, get_marked_field(),
                                                     possibleMovements.value(mark.get_marked_coord_pair()).minElapsedSpeed);
 
@@ -234,6 +248,13 @@ void GameField::keyPressEvent(QKeyEvent *event)
                         else if (possibleMovements.value(mark.get_marked_coord_pair()).moveType
                                                                 == UNIT_POSSIBLE_MOVE_TYPE_ALLOWED)
                         {
+                            emit;
+                            send_ingame_cmd(INGAME_NW_CMD_MOVE_UNIT, {  FROM_POS_TO_GAMEFIELD_COORD(selectedUnitField->x()),
+                                                                        FROM_POS_TO_GAMEFIELD_COORD(selectedUnitField->y()),
+                                                                        FROM_POS_TO_GAMEFIELD_COORD(get_marked_field()->x()),
+                                                                        FROM_POS_TO_GAMEFIELD_COORD(get_marked_field()->y()),
+                                                                        possibleMovements.value(mark.get_marked_coord_pair()).minElapsedSpeed});
+
                             move_unit_to_another_field(selectedUnitField, get_marked_field(),
                                 possibleMovements.value(mark.get_marked_coord_pair()).minElapsedSpeed);
                         }
@@ -255,6 +276,10 @@ void GameField::keyPressEvent(QKeyEvent *event)
                     {
                         game->get_player_list()->change_cur_player_money_amount(-Unit::get_record_from_default_stats_table(selectedUnit)->cost);
                         place_new_unit_on_gamefield(castleSpawnCoord_X, castleSpawnCoord_Y, selectedUnit);
+
+                        emit;
+                        send_ingame_cmd(INGAME_NW_CMD_PLACE_UNIT, {castleSpawnCoord_X, castleSpawnCoord_Y, selectedUnit});
+
                         update_info_rect();
                         update_hud();
                     }
@@ -783,7 +808,24 @@ int GameField::parse_map_file()
 
 void GameField::next_turn()
 {
-    game->next_turn();
+    emit;
+    send_ingame_cmd(INGAME_NW_CMD_NEXT_TURN, {});
+
+    PlayerList* pl = game->get_player_list();
+    player_color cpc = pl->get_cur_player_color();
+    if (!pl->is_player_losing(cpc))
+        pl->next_turn();
+    else
+    {
+        if (pl->decrement_countdown(cpc))
+        {
+            delete_players_items(cpc);
+            pl->delete_player(cpc);
+        }
+        else
+            pl->next_turn();
+    }
+    pl->change_cur_player_money_amount(pl->get_cur_player_income());
 
     update_hud();
     show_cur_player_rect();
@@ -823,6 +865,18 @@ void GameField::delete_players_items(player_color playerColor)
         else
             it++;
     }
+}
+
+void GameField::send_ingame_cmd(ingame_network_cmd_types type, std::initializer_list<int> list)
+{
+    if (!game->is_multiplayer_game())
+        return;
+
+    QVector<uint> args;
+    for (auto arg: list)
+        args.push_back(static_cast<uint>(arg));
+
+    game->send_ingame_cmd(type, args);
 }
 
 void GameField::update_hud()

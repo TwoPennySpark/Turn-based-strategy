@@ -1,8 +1,10 @@
 #ifndef GAMEFIELD_H
 #define GAMEFIELD_H
+
 #include "solefield.h"
 #include "markfield.h"
 #include "unit.h"
+#include "networkmanager.h"
 #include <QGraphicsScene>
 #include <QKeyEvent>
 #include <QGraphicsItem>
@@ -46,10 +48,6 @@ public:
     void remove_unit_from_gamefield(SoleField* unitField);
     void one_unit_attack_another(SoleField* attackerField, SoleField* defenderField, int minElapsedSpeed);
 
-    void update_info_rect();
-    void update_info_rect_color();
-    void update_hud();
-
     void move_view();
 
     void create_gamefield();
@@ -58,6 +56,10 @@ public:
     void prepare_cur_player_rect();
     void prepare_unit_purchase_scene();
 
+    void update_info_rect();
+    void update_info_rect_color();
+    void update_hud();
+
     void show_cur_player_rect();
     void show_unit_purchase_scene();
     void show_unit_info_on_purchase_scene();
@@ -65,6 +67,9 @@ public:
     void set_new_castle_owner(const QPair<int, int> &castleCoord, const player_color newOwner);
     void check_if_player_has_any_castles_left(const player_color player);
     void set_countdown(player_color player);
+    void delete_players_items(player_color playerColor);
+
+    void send_ingame_cmd(ingame_network_cmd_types type, std::initializer_list<int> list);
 
     int parse_map_file();
 
@@ -72,8 +77,6 @@ public:
 
     int get_width();
     int get_height();
-
-    void delete_players_items(player_color playerColor);
 
     SoleField** fields;
 
@@ -126,6 +129,8 @@ private:
     QGraphicsTextItem* attackTypeString;
     QGraphicsTextItem* attackRangeString;
     QGraphicsTextItem* descriptionString;
+
+signals:
 };
 
 #endif // GAMEFIELD_H

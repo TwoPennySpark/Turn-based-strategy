@@ -1,15 +1,16 @@
 #include "networkhost.h"
 #include <iostream>
 
-NetworkHost::NetworkHost(QString name, quint16 hostPort, int playerNum): playerNum(playerNum), port(hostPort)
+NetworkHost::NetworkHost(QString name, quint16 hostPort, int numOfPlayers): port(hostPort)
 {
     isHost = true;
+    playerNum = numOfPlayers;
     names.reserve(playerNum);
     socket.reserve(playerNum);
 
     // server player will go 1st so we push his name immediately
     // the other's player's names will be pushed in the order
-    // in which they are connect to the server
+    // in which they are connected to the server
     names.push_back(name);
 }
 
@@ -27,7 +28,7 @@ void NetworkHost::create_serv()
     emit network_manager_success(isHost);
     emit new_player_connected_sig(names[0]);
 
-    while (names.size() != 5)
+    while (names.size() != playerNum)
     {
         loop.processEvents();
         if (!server->waitForNewConnection(3000))
@@ -157,6 +158,11 @@ void NetworkHost::read_and_parse_frame()
 
         data.clear();
     }
+}
+
+void NetworkHost::get_and_send_ingame_cmd(ingame_network_cmd_types type, QVector<uint> &args)
+{
+
 }
 
 void NetworkHost::readyRead()

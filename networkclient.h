@@ -23,20 +23,20 @@ public:
     int parse_pregame_msg();
     int parse_ingame_msg();
 
+    void serialize_ingame_cmd(inGameCmd &msg, QByteArray& payloadArr);
+    void send_cmd_to_server(QByteArray &payloadArray);
+
+    void create_and_send_ingame_cmd(ingame_network_cmd_types type, QVector<uint> args);
     void initial_setup();
     void this_player_disconnected();
-
-//public slots:
+    void get_and_send_ingame_cmd(ingame_network_cmd_types type, QVector<uint>& args);
 
 private:
     QString hostIP;
     quint16 hostPort;
     QTcpSocket* servSock;
 
-//    int frameSize;
-//    bool isPrefixRead;
-//    QByteArray data;
-
+    int thisPlayerIndex;
     QString thisPlayerName;
     QVector<QString> names;
 

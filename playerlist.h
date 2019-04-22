@@ -49,9 +49,9 @@ private:
     const int max_turns_before_losing = 1;
 
     int playerNum;
-    int playersLeft;
     int curPlayerIndex = 0;
     QVector<player*> players;
+    QVector<player*>::iterator curPlayerIt;
 };
 
 #endif // PLAYERLIST_H

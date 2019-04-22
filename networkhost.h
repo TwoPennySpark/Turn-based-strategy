@@ -14,7 +14,7 @@ class NetworkHost: public NetworkManager
     Q_OBJECT
 
 public:
-    NetworkHost(QString name, quint16 hostPort, int playerNum);
+    NetworkHost(QString name, quint16 hostPort, int numOfPlayers);
     void create_serv();
     void send_list_of_names_to_new_player(QTcpSocket* newPlayerSock);
     void broadcast_player_connect(char *name);
@@ -32,11 +32,11 @@ public:
     void read_frame_size_prefix();
     void read_and_parse_frame();
 
+    void get_and_send_ingame_cmd(ingame_network_cmd_types type, QVector<uint>& args);
 private:
     quint16 port;
     QTcpServer* server;
 
-    int playerNum;
     QVector<QString> names;
     QVector<QTcpSocket*> socket;
 
