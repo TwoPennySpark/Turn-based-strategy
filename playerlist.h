@@ -36,14 +36,14 @@ public:
     void change_cur_player_money_amount(const int change);
 
     bool is_player_losing(const player_color playerColor) const;
-    void set_player_countdown(const player_color playerColor, bool status);
+    void set_player_countdown(const player_color playerColor, const bool status);
     int decrement_countdown(const player_color playerColor);
     int get_turns_left(const player_color playerColor) const;
-    void set_turns_left(const player_color playerColor, int turnsLeft);
+    void set_turns_left(const player_color playerColor, const int turnsLeft);
     void delete_player(const player_color playerColor);
 
     void show_player_lost_msg_box(const QString &playerName) const;
-    void show_player_won_msg_box(const QString &playerName);
+    void show_player_won_msg_box(const QString &playerName) const;
 
 private:
     const int max_turns_before_losing = 1;

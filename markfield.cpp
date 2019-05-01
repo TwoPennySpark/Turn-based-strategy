@@ -1,5 +1,5 @@
 #include "markfield.h"
-#include <algorithm>
+//#include <algorithm>
 MarkField::MarkField()
 {
     QVector<QPointF> markPoints;
@@ -57,7 +57,7 @@ MarkField::~MarkField()
     delete polygon4;
 }
 
-void MarkField::move(uint field_x, uint field_y)
+void MarkField::move(int field_x, int field_y)
 {
     setPos(FROM_GAMEFIELD_TO_POS_COORD(field_x),
            FROM_GAMEFIELD_TO_POS_COORD(field_y));
@@ -65,12 +65,12 @@ void MarkField::move(uint field_x, uint field_y)
     markCoord_Y = field_y;
 }
 
-uint MarkField::get_coord_x()
+int MarkField::get_coord_x() const
 {
     return markCoord_X;
 }
 
-uint MarkField::get_coord_y()
+int MarkField::get_coord_y() const
 {
     return markCoord_Y;
 }

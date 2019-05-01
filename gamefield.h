@@ -75,8 +75,8 @@ public:
 
     void next_turn();
 
-    int get_width();
-    int get_height();
+    int get_width() const;
+    int get_height() const;
 
     SoleField** fields;
 
@@ -84,8 +84,8 @@ private:
     int gameFieldWidth;
     int gameFieldHeight;
 
-    SoleField* get_marked_field();
-    Unit* get_marked_field_unit();
+    SoleField* get_marked_field() const;
+    Unit* get_marked_field_unit() const;
 
     MarkField mark;
 
@@ -129,8 +129,6 @@ private:
     QGraphicsTextItem* attackTypeString;
     QGraphicsTextItem* attackRangeString;
     QGraphicsTextItem* descriptionString;
-
-signals:
 };
 
 #endif // GAMEFIELD_H

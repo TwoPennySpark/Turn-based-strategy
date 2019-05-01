@@ -2,7 +2,8 @@
 
 NetworkManager::NetworkManager()
 {
-
+    frameSize = 0;
+    isPrefixRead = false;
 }
 
 int byteArrayToInt(QByteArray& arr)

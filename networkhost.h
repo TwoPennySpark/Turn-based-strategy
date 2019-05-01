@@ -15,41 +15,43 @@ class NetworkHost: public NetworkManager
 
 public:
     NetworkHost(QString name, quint16 hostPort, int numOfPlayers);
-    void create_serv();
-    void send_list_of_names_to_new_player(QTcpSocket* newPlayerSock);
-    void broadcast_player_connect(char *name);
-    void broadcast_player_disconnect(unsigned int index);
-    void broadcast_start_message();
-    void broadcast_msg(QByteArray& payloadArray);
+    ~NetworkHost();
 
-    void serialize_pregame_msg(preGameCmd& msg, QByteArray &payloadArr);
-    void serialize_ingame_msg(inGameCmd& msg, QByteArray &payloadArr);
+    void initial_setup();
+    void create_serv();
+    void send_list_of_names_to_new_player(QTcpSocket *newPlayerSock);
+    void broadcast_player_connect(const QString &name);
+    void broadcast_player_disconnect(const unsigned int index);
+    void broadcast_start_message();
+
+    template <class T>
+    void broadcast_cmd(const T& cmd) const;
+    void broadcast_byte_array(QByteArray &payloadArray) const;
+    void prepend_length_prefix(QByteArray& payloadArr) const;
+    void forward_incoming_cmd_to_other_players(const QByteArray &payloadArray) const;
+    void send_this_player_ingame_cmd(const uint type, const QVector<uint> args);
 
     void readyRead();
-    void initial_setup();
-    void this_player_disconnected();
-
     void read_frame_size_prefix();
     void read_and_parse_frame();
+    int parse_ingame_msg();
 
-    void get_and_send_ingame_cmd(ingame_network_cmd_types type, QVector<uint>& args);
+    void this_player_disconnected();
 private:
     quint16 port;
-    QTcpServer* server;
+    QTcpServer* listenSock;
 
     QVector<QString> names;
-    QVector<QTcpSocket*> socket;
+    QVector<QTcpSocket*> connectedPlayerSockets;
+    QVector<QTcpSocket*> losersSockets;
+    QVector<QTcpSocket*>::iterator curPlayerIt;
 
     typedef int (NetworkHost::*parse_arr_func)();
     parse_arr_func parse_func;
 
 public slots:
-    void handle_disconnect(QAbstractSocket::SocketError sockError);
-
-//signals:
-//    void network_manager_success();
-//    void new_player_connected_sig(QString name);
-//    void player_disconnected_sig(QString name);
+    void handle_pregame_disconnect(QAbstractSocket::SocketError sockError);
+    void handle_ingame_disconnect(QAbstractSocket::SocketError sockError);
 };
 
 #endif // NETWORKHOST_H

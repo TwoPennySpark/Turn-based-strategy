@@ -11,13 +11,15 @@ Game::Game()
     isMultiplayerGame = false;
 
     playerNum = 0;
+
+    state = STATE_NONE;
 }
 
 Game::~Game()
 {
-    delete view;
-
     delete gameField;
+
+    delete view;
 
     delete mainWidget;
 
@@ -31,8 +33,6 @@ PlayerList* Game::get_player_list() const
 
 void Game::create_players()
 {
-    mainWidget->hide();
-
     playerNum = 4;
     if (playerNum > PLAYER_MAX)
         playerNum = PLAYER_MAX;
@@ -41,7 +41,7 @@ void Game::create_players()
     QString temp;
     for (int i = 0; i < playerNum; i++)
     {
-        switch (static_cast<player_color>(i))
+        switch (i)
         {
             case PLAYER_RED:
                 temp = "Red";
@@ -78,32 +78,34 @@ int Game::get_player_num() const
     return playerNum;
 }
 
-void Game::show_player_lost_msg_box(const QString& playerName) const
+void Game::show_main_menu()
 {
-    QMessageBox msgBox;
-    msgBox.setText(QString("Player \"%1\" lost").arg(playerName));
-    msgBox.addButton(QMessageBox::Close);
-    msgBox.move(view->width()/2  - msgBox.width()/2,
-                view->height()/2 - msgBox.height()/2);
-    msgBox.exec();
-}
+    QVBoxLayout *mainMenuLayout = new QVBoxLayout;
 
-void Game::show_player_won_msg_box(const QString &playerName)
-{
-    QMessageBox gameOverBox;
-    gameOverBox.setText(QString("Player \"%1\" won!").arg(playerName));
-    gameOverBox.addButton(QMessageBox::Close);
-    gameOverBox.move(view->width()/2  - gameOverBox.width()/2,
-                     view->height()/2 - gameOverBox.height()/2);
-    gameOverBox.exec();
+    mainWidget->setGeometry(700, 250, 500, 500);
 
-    this->deleteLater();
+    QPushButton* singlePlayerButton = new QPushButton("Hot-seat");
+    mainMenuLayout->addWidget(singlePlayerButton);
+    connect(singlePlayerButton, &QPushButton::clicked, this, &Game::start_hot_seat);
 
-    emit finished();
+    QPushButton* multiPlayerButton = new QPushButton("Multiplayer");
+    mainMenuLayout->addWidget(multiPlayerButton);
+    connect(multiPlayerButton, &QPushButton::clicked, this, &Game::show_multiplayer_settings_menu);
+
+    QPushButton* exitButton = new QPushButton("Exit");
+    mainMenuLayout->addWidget(exitButton);
+    connect(exitButton, &QPushButton::clicked, [&](){this->clear_main_window(); this->deleteLater(); emit finished();});
+
+    mainWidget->setLayout(mainMenuLayout);
+
+    mainWidget->show();
 }
 
 void Game::start_hot_seat()
 {
+//    clear_main_window();
+    mainWidget->hide();
+
     view = new QGraphicsView();
 //    view->showFullScreen();
     view->setFixedSize(1900, 900);
@@ -116,7 +118,7 @@ void Game::start_hot_seat()
     gameField = new GameField(view);
 }
 
-void Game::start_multiplayer()
+void Game::show_multiplayer_settings_menu()
 {
     clear_main_window();
 
@@ -136,46 +138,6 @@ void Game::start_multiplayer()
     enterNameLayout->addWidget(connectButton);
     enterNameLayout->addWidget(createServButton);
     mainWidget->setLayout(enterNameLayout);
-}
-
-void Game::show_main_menu()
-{
-    QStackedWidget *stackWidget = new QStackedWidget;
-    QVBoxLayout *mainMenuLayout = new QVBoxLayout;
-
-    mainWidget->setGeometry(700, 250, 500, 500);
-
-    QPushButton* singlePlayerButton = new QPushButton("Hot-seat");
-    mainMenuLayout->addWidget(singlePlayerButton);
-    connect(singlePlayerButton, &QPushButton::clicked, this, &Game::start_hot_seat);
-
-    QPushButton* multiPlayerButton = new QPushButton("Multiplayer");
-    mainMenuLayout->addWidget(multiPlayerButton);
-    connect(multiPlayerButton, &QPushButton::clicked, this, &Game::start_multiplayer);
-
-    QPushButton* exitButton = new QPushButton("Exit");
-    mainMenuLayout->addWidget(exitButton);
-    connect(exitButton, &QPushButton::clicked, [&](){this->clear_main_window(); this->deleteLater(); emit finished();});
-
-    mainWidget->setLayout(mainMenuLayout);
-
-//    QWidget *widget2 = new QWidget;
-//    QVBoxLayout *enterNameLayout = new QVBoxLayout;
-//    QLineEdit *lineEdit = new QLineEdit();
-//    lineEdit->setGeometry(100, 100, 1000, 200);
-//    lineEdit->setAlignment(Qt::AlignCenter);
-//    QPushButton* nextButton = new QPushButton("Next");
-
-//    enterNameLayout->addWidget(lineEdit);
-//    enterNameLayout->addWidget(nextButton);
-//    widget2->setLayout(enterNameLayout);
-
-//    stackWidget->addWidget(mainWidget);
-//    stackWidget->addWidget(widget2);
-//    stackWidget->setCurrentIndex(0);
-//    connect(nextButton, &QPushButton::clicked, [&](){stackWidget->setCurrentIndex(1);});
-//    stackWidget->show();
-    mainWidget->show();
 }
 
 void Game::show_connect_menu(QString name)
@@ -226,11 +188,15 @@ void Game::show_create_serv_menu(QString name)
 
 void Game::create_network_thread(QString name, bool createServer, QString host, quint16 port)
 {
+    qRegisterMetaType<QVector<uint> >("QVector<uint>");
     createServer ? (netMng = new NetworkHost(name, port, PLAYER_MAX)) : (netMng = new NetworkClient(name, host, port));
     connect(this, &Game::network_initial_setup, netMng, &NetworkManager::initial_setup);
-    connect(this, &Game::send_ingame_cmd, netMng, &NetworkManager::get_and_send_ingame_cmd);
+    connect(this, &Game::send_ingame_cmd, netMng, &NetworkManager::send_this_player_ingame_cmd);
     connect(netMng, &NetworkManager::network_manager_success, this, &Game::show_waiting_for_players_screen, Qt::BlockingQueuedConnection);
-    connect(netMng, &NetworkManager::this_player_turn, this, &Game::set_this_player_turn_true);
+    connect(netMng, &NetworkManager::start_multiplayer_game, this, &Game::start_multiplayer);
+    connect(netMng, &NetworkManager::this_player_turn_start, this, &Game::set_this_player_turn_true);
+    connect(netMng, &NetworkManager::recv_ingame_cmd_for_execution, this, &Game::execute_multiplayer_ingame_cmd);
+    connect(netMng, &NetworkManager::network_error, this, &Game::show_network_error_msg);
 
     networkThread = new QThread;
     networkThread->start();
@@ -260,7 +226,7 @@ void Game::show_waiting_for_players_screen(bool isHost)
     {
         playerNum--; playerNames.removeOne(newName); playersListLabel->text().clear();
         playersReadyLabel->setText(QString("Players ready:%1/%2").arg(QString::number(playerNum), QString::number(PLAYER_MAX)));
-        QString playerList; for (auto name: playerNames) {qDebug() << name ;playerList += name +"\n";} playersListLabel->setText(playerList);
+        QString playerList; for (auto name: playerNames) playerList += name +"\n"; playersListLabel->setText(playerList);
     });
 
     QPushButton* startButton = new QPushButton(isHost ? "Start" : "Ready");
@@ -277,9 +243,20 @@ void Game::show_waiting_for_players_screen(bool isHost)
     mainWidget->setLayout(layout);
 }
 
-void Game::set_this_player_turn_true()
+void Game::start_multiplayer()
 {
-    thisPlayerTurn = true;
+//    clear_main_window();
+    mainWidget->hide();
+
+    view = new QGraphicsView();
+//    view->showFullScreen();
+    view->setFixedSize(1900, 900);
+    view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    playerList = new PlayerList(playerNames);
+    state = STATE_BASIC;
+    gameField = new GameField(view);
 }
 
 void Game::show_console()
@@ -311,7 +288,7 @@ void Game::show_console()
             gameField->place_new_unit_on_gamefield(list[1].toInt(), list[2].toInt(), UNIT_TYPE_DRAGON);
         else if (list[0] == "remove")
             gameField->remove_unit_from_gamefield(&gameField->fields[list[1].toInt()][list[2].toInt()]);
-        else if (commandLineText.contains("del"))
+        else if (list[0] == "del")
         {
             player_color pc = playerList->get_cur_player_color();
             if (static_cast<player_color>(list[1].toInt()) == pc)
@@ -335,17 +312,170 @@ void Game::show_console()
     mainWidget->show();
 }
 
-bool Game::is_this_player_turn()
+int Game::multiplayer_ingame_cmd_validation_check(const uint type, const QVector<uint>& args) const
+{
+    bool errFlag = false;
+
+    if (type <= INGAME_NW_CMD_NONE || type >= INGAME_NW_CMD_MAX)
+        return 1;
+    switch (type)
+    {
+        case INGAME_NW_CMD_PLAYER_RECONNECTED:
+            break;
+        case INGAME_NW_CMD_PLAYER_DISCONNECTED:
+            if (playerList->find_player_by_color(static_cast<player_color>(args[0])) == nullptr)
+                errFlag = true;
+            break;
+        case INGAME_NW_CMD_NEXT_TURN:
+            break;
+        case INGAME_NW_CMD_MOVE_UNIT:
+            if (!(args[0] < gameField->get_width()  &&
+                  args[1] < gameField->get_height() &&
+                  args[2] < gameField->get_width()  &&
+                  args[3] < gameField->get_height()))
+                errFlag = true;
+            break;
+        case INGAME_NW_CMD_ATTACK_UNIT:
+            if (!(args[0] < gameField->get_width()  &&
+                  args[1] < gameField->get_height() &&
+                  args[2] < gameField->get_width()  &&
+                  args[3] < gameField->get_height()))
+                errFlag = true;
+            break;
+        case INGAME_NW_CMD_PLACE_UNIT:
+            if (!(args[0] < gameField->get_width()  &&
+                  args[1] < gameField->get_height() &&
+                  args[2] < UNIT_TYPE_MAX))
+                errFlag = true;
+            break;
+        case INGAME_NW_CMD_REMOVE_UNIT:
+            if (!(args[0] < gameField->get_width()  &&
+                  args[1] < gameField->get_height()))
+                errFlag = true;
+            break;
+        default:
+            break;
+    }
+
+    return errFlag ? 1 : 0;
+}
+
+void Game::execute_multiplayer_ingame_cmd(const uint type, const QVector<uint> args)
+{
+    if (multiplayer_ingame_cmd_validation_check(type, args))
+        return;
+
+    switch (type)
+    {
+        case INGAME_NW_CMD_PLAYER_RECONNECTED:
+            qDebug() << "INGAME_NW_CMD_PLAYER_RECONNECTED";
+            break;
+        case INGAME_NW_CMD_PLAYER_DISCONNECTED:
+        {
+            qDebug() << "INGAME_NW_CMD_PLAYER_DISCONNECTED";
+            player_color pc = playerList->get_cur_player_color();
+            if (static_cast<player_color>(args[0]) == pc)
+            {
+                playerList->set_player_countdown(pc, true);
+                playerList->set_turns_left(pc, -1);
+                gameField->next_turn();
+            }
+            else
+            {
+                gameField->delete_players_items(static_cast<player_color>(args[0]));
+                playerList->delete_player(static_cast<player_color>(args[0]));
+            }
+            break;
+        }
+        case INGAME_NW_CMD_NEXT_TURN:
+            qDebug() << "INGAME_NW_CMD_NEXT_TURN";
+            gameField->next_turn();
+            break;
+        case INGAME_NW_CMD_MOVE_UNIT:
+            qDebug() << "INGAME_NW_CMD_MOVE_UNIT";
+            gameField->move_unit_to_another_field(&gameField->fields[args[0]][args[1]],
+                                                  &gameField->fields[args[2]][args[3]], args[4]);
+            break;
+        case INGAME_NW_CMD_ATTACK_UNIT:
+            qDebug() << "INGAME_NW_CMD_ATTACK_UNIT";
+            gameField->one_unit_attack_another(&gameField->fields[args[0]][args[1]],
+                                               &gameField->fields[args[2]][args[3]], args[4]);
+            break;
+        case INGAME_NW_CMD_PLACE_UNIT:
+            qDebug() << "INGAME_NW_CMD_PLACE_UNIT";
+            gameField->place_new_unit_on_gamefield(args[0], args[1], static_cast<unit_type>(args[2]));
+            break;
+        case INGAME_NW_CMD_REMOVE_UNIT:
+            qDebug() << "INGAME_NW_CMD_REMOVE_UNIT";
+            gameField->remove_unit_from_gamefield(&gameField->fields[args[0]][args[1]]);
+            break;
+        default:
+            qDebug() << "[-]Unknown type:" << type;
+            break;
+    }
+}
+
+void Game::show_network_error_msg(int code)
+{
+    QMessageBox msgBox;
+
+    switch (code)
+    {
+        case NETWORK_ERROR_SERVER_SHUTDOWN:
+            msgBox.setText(QString("Server shutdown"));
+            break;
+        case NETWORK_ERROR_THIS_PLAYER_DISCONNECT:
+            msgBox.setText(QString("Connection lost"));
+            break;
+        default:
+            msgBox.setText(QString("Unknown error"));
+            break;
+    }
+    msgBox.addButton(QMessageBox::Close);
+    msgBox.exec();
+
+    roll_back_to_main_menu();
+}
+
+void Game::roll_back_to_main_menu()
+{
+    clear_main_window();
+
+    isMultiplayerGame = false;
+    thisPlayerTurn = false;
+    playerNum = 0;
+
+    netMng->deleteLater();
+    networkThread->quit();
+    networkThread->deleteLater();
+
+    if (state != STATE_NONE)
+    {
+        delete gameField;
+
+        delete view;
+
+        delete playerList;
+    }
+    show_main_menu();
+}
+
+bool Game::is_this_player_turn() const
 {
     return thisPlayerTurn;
 }
 
-void Game::set_this_player_turn(bool val)
+void Game::set_this_player_turn_true()
 {
-    thisPlayerTurn = val;
+    thisPlayerTurn = true;
 }
 
-bool Game::is_multiplayer_game()
+void Game::set_this_player_turn_false()
+{
+    thisPlayerTurn = false;
+}
+
+bool Game::is_multiplayer_game() const
 {
     return isMultiplayerGame;
 }
@@ -353,10 +483,15 @@ bool Game::is_multiplayer_game()
 void Game::clear_main_window()
 {
     QLayoutItem* item;
+
+    if (mainWidget->layout() == nullptr)
+        return;
+
     while ((item = mainWidget->layout()->takeAt(0)))
     {
         delete item->widget();
         delete item;
     }
     delete mainWidget->layout();
+    mainWidget->setLayout(nullptr);
 }

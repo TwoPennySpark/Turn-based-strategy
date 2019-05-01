@@ -23,13 +23,14 @@ public:
     int parse_pregame_msg();
     int parse_ingame_msg();
 
-    void serialize_ingame_cmd(inGameCmd &msg, QByteArray& payloadArr);
-    void send_cmd_to_server(QByteArray &payloadArray);
+    template<class T>
+    void send_cmd_to_server(T &cmd);
 
-    void create_and_send_ingame_cmd(ingame_network_cmd_types type, QVector<uint> args);
+    int validation_check_ingame_cmd(inGameCmd &cmd) const;
+
     void initial_setup();
     void this_player_disconnected();
-    void get_and_send_ingame_cmd(ingame_network_cmd_types type, QVector<uint>& args);
+    void send_this_player_ingame_cmd(const uint type, const QVector<uint> args);
 
 private:
     QString hostIP;
@@ -42,6 +43,9 @@ private:
 
     typedef int (NetworkClient::*parse_arr_func)();
     parse_arr_func parse_func;
+
+public slots:
+    void server_shutdown(QAbstractSocket::SocketError sockError);
 };
 
 #endif // NETWORKCLIENT_H

@@ -88,17 +88,17 @@ Unit::~Unit()
 
 }
 
-int Unit::get_coord_x()
+int Unit::get_coord_x() const
 {
     return coord_x;
 }
 
-int Unit::get_coord_y()
+int Unit::get_coord_y() const
 {
     return coord_y;
 }
 
-unit_combat_outcome Unit::attack(SoleField* defenderField)
+unit_combat_outcome Unit::attack(const SoleField* defenderField)
 {
     unit_combat_outcome outcome = UNIT_COMBAT_NONE;
     const qreal attackingUnitStrengthBonus = 0.1;
@@ -197,7 +197,7 @@ void Unit::add_fraction_rect()
     fractionRect.setPos(this->x(), this->y());
 }
 
-player_color Unit::get_fraction()
+player_color Unit::get_fraction() const
 {
     return fraction;
 }
@@ -250,7 +250,7 @@ void Unit::set_fraction_color()
     fractionRect.setBrush(brush);
 }
 
-void Unit::move_unit(qreal destPosCoord_x, qreal destPosCoord_y, int elapsedSpeed)
+int Unit::move_unit(qreal destPosCoord_x, qreal destPosCoord_y, int elapsedSpeed)
 {
     int newCoord_x = FROM_POS_TO_GAMEFIELD_COORD(destPosCoord_x);
     int newCoord_y = FROM_POS_TO_GAMEFIELD_COORD(destPosCoord_y);
@@ -258,7 +258,8 @@ void Unit::move_unit(qreal destPosCoord_x, qreal destPosCoord_y, int elapsedSpee
     if (elapsedSpeed > speedLeft)
         elapsedSpeed = speedLeft;
 
-    pave_the_way(newCoord_x, newCoord_y, elapsedSpeed);
+    if (pave_the_way(newCoord_x, newCoord_y, elapsedSpeed))
+        return 1;
 
     speedLeft -= elapsedSpeed;
 
@@ -268,26 +269,34 @@ void Unit::move_unit(qreal destPosCoord_x, qreal destPosCoord_y, int elapsedSpee
 //    setPos(toPosCoord_x, toPosCoord_y);
     coord_x = newCoord_x;
     coord_y = newCoord_y;
+
+    return 0;
 }
 
-void Unit::pave_the_way(int toCoord_x, int toCoord_y, int elapsedSpeed)
+int Unit::pave_the_way(int toCoord_x, int toCoord_y, int elapsedSpeed)
 {
     // fill "way" vector with coord of fields unit
     // moves throught towards the distanation point
     depth_search_for_the_shortest_path(coord_x, coord_y, toCoord_x, toCoord_y, elapsedSpeed);
 
+    // if the path is not found
+    if (way.size() == 0)
+        return 1;
+
     // if move animation has already started
     if (moveTimer.isActive())
-        return;
+        return 0;
 
     // remove current coord
     way.pop_front();
 
     // start move animation
     moveTimer.start(10);
+
+    return 0;
 }
 
-void depth_seach_insert_neighbours(QVector<QPair<int, int>>& neighbours, int x, int y, QVector<QPair<int, int>>& path)
+void depth_seach_insert_neighbours(QVector<QPair<int, int>>& neighbours, const int x, const int y, const QVector<QPair<int, int>>& path)
 {
     if (x+1 < game->gameField->get_width() && !path.contains(qMakePair(x+1, y)))
         neighbours.push_back(qMakePair(x+1, y));
@@ -391,7 +400,7 @@ void Unit::depth_search_for_possible_moves(QHash<QPair<int, int>, field_info>& p
 }
 #undef REPLACE_OR_NEW_INSERT
 
-void width_search_insert_neighbours(QQueue<QPair<int, int>>& checkQueue, QHash<QPair<int, int>, int>& alreadyChecked, int x, int y)
+void width_search_insert_neighbours(QQueue<QPair<int, int>>& checkQueue, QHash<QPair<int, int>, int>& alreadyChecked, const int x, const int y)
 {
     if (x+1 <= game->gameField->get_width() && !alreadyChecked.value(qMakePair(x+1, y)))
     {
@@ -465,7 +474,7 @@ int Unit::get_speed_left() const
     return speedLeft;
 }
 
-bool Unit::is_active()
+bool Unit::is_active() const
 {
     return active;
 }
@@ -501,12 +510,12 @@ void Unit::get_name(QString& retName) const
     retName = name;
 }
 
-const defaultUnitStats* Unit::get_record_from_default_stats_table(unit_type type)
+const defaultUnitStats* Unit::get_record_from_default_stats_table(const unit_type type)
 {
     return &unitStatsLookupTable[type];
 }
 
-unit_move_direction Unit::determine_direction(int to_x, int to_y)
+unit_move_direction Unit::determine_direction(const int to_x, const int to_y)
 {
     int from_x = FROM_POS_TO_GAMEFIELD_COORD(this->x());
     int from_y = FROM_POS_TO_GAMEFIELD_COORD(this->y());
@@ -594,7 +603,7 @@ void Unit::move()
     moveBy(Vx, Vy);
 }
 
-void Unit::start_damage_received_animation(int damageReceived)
+void Unit::start_damage_received_animation(const int damageReceived)
 {
 //    qDebug() << "DMG REC:"<<damageReceived<<endl;
     if (damageReceived)

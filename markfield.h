@@ -13,15 +13,15 @@ public:
     MarkField();
     ~MarkField();
 
-    void move(uint field_x, uint field_y);
-    uint get_coord_x();
-    uint get_coord_y();
+    void move(int field_x, int field_y);
+    int get_coord_x() const;
+    int get_coord_y() const;
 
     QPair<int, int>& get_marked_coord_pair();
 
 private:
-    uint markCoord_X;
-    uint markCoord_Y;
+    int markCoord_X;
+    int markCoord_Y;
     QPair<int, int> markCoordPair;
 
     QGraphicsPolygonItem* polygon1;

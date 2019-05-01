@@ -30,6 +30,7 @@ public:
     Game();
     ~Game();
     void start_hot_seat();
+    void show_multiplayer_settings_menu();
     void start_multiplayer();
 
     PlayerList *get_player_list() const;
@@ -38,9 +39,6 @@ public:
     cur_player_state get_state() const;
 
     int get_player_num() const;
-
-    void show_player_lost_msg_box(const QString &playerName) const;
-    void show_player_won_msg_box(const QString &playerName);
 
     void show_main_menu();
     void show_connect_menu(QString name);
@@ -51,9 +49,11 @@ public:
 
     void show_console();
 
-    bool is_this_player_turn();
-    void set_this_player_turn(bool val);
-    bool is_multiplayer_game();
+    bool is_this_player_turn() const;
+    bool is_multiplayer_game() const;
+    void set_this_player_turn_false();
+
+    int multiplayer_ingame_cmd_validation_check(const uint type, const QVector<uint> &args) const;
 
     GameField *gameField;
 
@@ -79,13 +79,15 @@ signals:
     void finished();
 
     void network_initial_setup();
-    void send_ingame_cmd(ingame_network_cmd_types type, QVector<uint>& args);
-//    void create_serv_sig(int port);
-//    void connect_to_serv_sig(QString host, int port);
+    void send_ingame_cmd(const uint type, const QVector<uint> args);
+    void player_lost(const int playerIndex);
 
 public slots:
     void show_waiting_for_players_screen(bool isHost);
     void set_this_player_turn_true();
+    void execute_multiplayer_ingame_cmd(const uint type, const QVector<uint> args);
+    void show_network_error_msg(int code);
+    void roll_back_to_main_menu();
 };
 
 #endif // GAME_H

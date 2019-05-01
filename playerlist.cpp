@@ -76,7 +76,7 @@ bool PlayerList::is_player_losing(const player_color playerColor) const
     return find_player_by_color(playerColor)->isLosing;
 }
 
-void PlayerList::set_player_countdown(const player_color playerColor, bool status)
+void PlayerList::set_player_countdown(const player_color playerColor, const bool status)
 {
     find_player_by_color(playerColor)->isLosing = status;
 
@@ -99,7 +99,7 @@ int PlayerList::get_turns_left(const player_color playerColor) const
     return find_player_by_color(playerColor)->turnsBeforeLosing;
 }
 
-void PlayerList::set_turns_left(const player_color playerColor, int turnsLeft)
+void PlayerList::set_turns_left(const player_color playerColor, const int turnsLeft)
 {
     find_player_by_color(playerColor)->turnsBeforeLosing = turnsLeft;
 }
@@ -135,7 +135,7 @@ void PlayerList::show_player_lost_msg_box(const QString& playerName) const
     msgBox.exec();
 }
 
-void PlayerList::show_player_won_msg_box(const QString &playerName)
+void PlayerList::show_player_won_msg_box(const QString &playerName) const
 {
     QMessageBox gameOverBox;
     gameOverBox.setText(QString("Player \"%1\" won!").arg(playerName));

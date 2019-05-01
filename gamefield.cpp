@@ -25,8 +25,7 @@ GameField::GameField(QGraphicsView *view, QWidget *parent): QGraphicsScene(paren
     prepare_cur_player_rect();
 
     create_gamefield();
-    game->get_player_list()->change_player_income(game->get_player_list()->get_cur_player_color(),
-                                                  game->get_player_list()->get_cur_player_income());
+    game->get_player_list()->change_cur_player_money_amount(game->get_player_list()->get_cur_player_income());
 
     view->show();
 
@@ -34,27 +33,6 @@ GameField::GameField(QGraphicsView *view, QWidget *parent): QGraphicsScene(paren
     verticalBar   = view->verticalScrollBar();
     horizontalBar->setValue(viewPointX);
     verticalBar->setValue(viewPointY);
-
-    // tests
-//        place_new_unit_on_gamefield(0, 0, UNIT_TYPE_DRAGON);
-//        place_new_unit_on_gamefield(5, 0, UNIT_TYPE_DRAGON);
-//    place_new_unit_on_gamefield(1, 2, UNIT_TYPE_ARCHER);
-//    place_new_unit_on_gamefield(2, 2, UNIT_TYPE_MAGE);
-//    place_new_unit_on_gamefield(3, 1, UNIT_TYPE_WARRIOR);
-//    place_new_unit_on_gamefield(5, 6, UNIT_TYPE_ARCHER);
-//    place_new_unit_on_gamefield(6, 4, UNIT_TYPE_KNIGHT);
-//    place_new_unit_on_gamefield(7, 5, UNIT_TYPE_CATAPULT);
-//    place_new_unit_on_gamefield(9, 9, UNIT_TYPE_WATER_ELEMENTAL);
-//    game->next_turn();
-//    place_new_unit_on_gamefield(3, 3, UNIT_TYPE_ARCHER);
-//    place_new_unit_on_gamefield(4, 4, UNIT_TYPE_WARRIOR);
-//    place_new_unit_on_gamefield(2, 1, UNIT_TYPE_CATAPULT);
-//    place_new_unit_on_gamefield(8, 8, UNIT_TYPE_KNIGHT);
-//    place_new_unit_on_gamefield(13, 5, UNIT_TYPE_DRAGON);
-
-//    for (int i = 0; i < gameFieldWidth; i++)
-//        for (int j = 0; j < gameFieldHeight; j++)
-//            place_new_unit_on_gamefield(i, j, UNIT_TYPE_WARRIOR);
 
     update_info_rect();
     update_info_rect_color();
@@ -97,7 +75,8 @@ void GameField::keyPressEvent(QKeyEvent *event)
       !(event->key() == Qt::Key_W || event->key() == Qt::Key_Up ||
         event->key() == Qt::Key_A || event->key() == Qt::Key_Left ||
         event->key() == Qt::Key_D || event->key() == Qt::Key_Right ||
-        event->key() == Qt::Key_S || event->key() == Qt::Key_Down ))
+        event->key() == Qt::Key_S || event->key() == Qt::Key_Down ||
+        event->key() == Qt::Key_Control))
         return;
 
     switch (event->key())
@@ -201,10 +180,7 @@ void GameField::keyPressEvent(QKeyEvent *event)
         case (Qt::Key_Return):
             if (game->get_state() == STATE_BASIC)
             {
-//                player_color curPlayer = game->get_player_list()->get_cur_player_color();
-//                if (game->get_player_list()->is_player_losing(curPlayer))
-//                    if (game->get_player_list()->decrement_countdown(curPlayer))
-//                        delete_players_items(curPlayer);
+                send_ingame_cmd(INGAME_NW_CMD_NEXT_TURN, {});
                 next_turn();
             }
             break;
@@ -234,7 +210,6 @@ void GameField::keyPressEvent(QKeyEvent *event)
                         if (possibleMovements.value(mark.get_marked_coord_pair()).moveType
                                                             == UNIT_POSSIBLE_MOVE_TYPE_ENEMY_IN_ATTACK_RANGE)
                         {
-                            emit;
                             send_ingame_cmd(INGAME_NW_CMD_ATTACK_UNIT,{  FROM_POS_TO_GAMEFIELD_COORD(selectedUnitField->x()),
                                                                          FROM_POS_TO_GAMEFIELD_COORD(selectedUnitField->y()),
                                                                          FROM_POS_TO_GAMEFIELD_COORD(get_marked_field()->x()),
@@ -248,7 +223,6 @@ void GameField::keyPressEvent(QKeyEvent *event)
                         else if (possibleMovements.value(mark.get_marked_coord_pair()).moveType
                                                                 == UNIT_POSSIBLE_MOVE_TYPE_ALLOWED)
                         {
-                            emit;
                             send_ingame_cmd(INGAME_NW_CMD_MOVE_UNIT, {  FROM_POS_TO_GAMEFIELD_COORD(selectedUnitField->x()),
                                                                         FROM_POS_TO_GAMEFIELD_COORD(selectedUnitField->y()),
                                                                         FROM_POS_TO_GAMEFIELD_COORD(get_marked_field()->x()),
@@ -263,11 +237,11 @@ void GameField::keyPressEvent(QKeyEvent *event)
                     delete_possible_movements_rects();
                     possibleMovements.clear();
                     game->set_state(STATE_BASIC);
-                    for (Unit *u: unitsOnGamefield)
-                    {
-                        u->set_active();
-                        u->reset_speed();
-                    }
+//                    for (Unit *u: unitsOnGamefield)
+//                    {
+//                        u->set_active();
+//                        u->reset_speed();
+//                    }
                     break;
                 case STATE_UNIT_PURCHASE:
                     mark.move(castleSpawnCoord_X, castleSpawnCoord_Y);
@@ -277,7 +251,6 @@ void GameField::keyPressEvent(QKeyEvent *event)
                         game->get_player_list()->change_cur_player_money_amount(-Unit::get_record_from_default_stats_table(selectedUnit)->cost);
                         place_new_unit_on_gamefield(castleSpawnCoord_X, castleSpawnCoord_Y, selectedUnit);
 
-                        emit;
                         send_ingame_cmd(INGAME_NW_CMD_PLACE_UNIT, {castleSpawnCoord_X, castleSpawnCoord_Y, selectedUnit});
 
                         update_info_rect();
@@ -296,26 +269,25 @@ void GameField::keyPressEvent(QKeyEvent *event)
             break;
         }
         case (Qt::Key_F):
-                if (game->get_state() == STATE_UNIT_PURCHASE)
-                {
-                    game->set_state(STATE_BASIC);
+            if (game->get_state() == STATE_UNIT_PURCHASE)
+            {
+                game->set_state(STATE_BASIC);
 
-                    unitPurchaseSceneGroup->hide();
-                    mark.move(castleSpawnCoord_X, castleSpawnCoord_Y);
+                unitPurchaseSceneGroup->hide();
+                mark.move(castleSpawnCoord_X, castleSpawnCoord_Y);
 
-                    infoRectGroup->show();
-                }
-                else if (game->get_state() == STATE_BASIC)
+                infoRectGroup->show();
+            }
+            else if (game->get_state() == STATE_BASIC)
+            {
+                if (get_marked_field()->get_terrain_type() == TERRAIN_TYPE_CASTLE &&
+                    castles.value(mark.get_marked_coord_pair()).fraction == game->get_player_list()->get_cur_player_color())
                 {
-                    if (get_marked_field()->get_terrain_type() == TERRAIN_TYPE_CASTLE &&
-                        castles.value(mark.get_marked_coord_pair()).fraction == game->get_player_list()->get_cur_player_color())
-                    {
-                        show_unit_purchase_scene();
-                    }
+                    show_unit_purchase_scene();
                 }
+            }
             break;
         case (Qt::Key_Escape):
-        {
             if (game->get_state() == STATE_UNIT_SELECTED)
             {
                 possibleMovements.clear();
@@ -330,7 +302,6 @@ void GameField::keyPressEvent(QKeyEvent *event)
                 game->set_state(STATE_BASIC);
             }
             break;
-        }
         case (Qt::Key_F1):
             game->show_console();
             break;
@@ -411,7 +382,8 @@ void GameField::move_unit_to_another_field(SoleField *from, SoleField *to, int s
 {
     if (from->get_unit() && to->get_unit() == nullptr)
     {
-        from->get_unit()->move_unit(to->x(), to->y(), speedElapsed);
+        if (from->get_unit()->move_unit(to->x(), to->y(), speedElapsed))
+            return;
 
         to->set_unit(from->get_unit());
         from->set_unit(nullptr);
@@ -425,8 +397,8 @@ void GameField::move_unit_to_another_field(SoleField *from, SoleField *to, int s
             int castleCoordY = FROM_POS_TO_GAMEFIELD_COORD(to->y());
             if (castles.value(qMakePair(castleCoordX, castleCoordY)).fraction !=
                               to->get_unit()->get_fraction())
-            set_new_castle_owner(qMakePair(castleCoordX, castleCoordY),
-                                 to->get_unit()->get_fraction());
+                set_new_castle_owner(qMakePair(castleCoordX, castleCoordY),
+                                    to->get_unit()->get_fraction());
         }
 
         update_info_rect();
@@ -580,7 +552,7 @@ void GameField::prepare_unit_purchase_scene()
     QGraphicsRectItem* speedBlock = new QGraphicsRectItem(450, 100, 450, 100, unitPurchaseSceneGroup);
     QGraphicsRectItem* attackTypeBlock = new QGraphicsRectItem(0, 200, 450, 100, unitPurchaseSceneGroup);
     QGraphicsRectItem* attackRangeBlock = new QGraphicsRectItem(450, 200, 450, 100, unitPurchaseSceneGroup);
-    QGraphicsRectItem* descriptionBlock = new QGraphicsRectItem(0, 300, 900, 100, unitPurchaseSceneGroup);
+//    QGraphicsRectItem* descriptionBlock = new QGraphicsRectItem(0, 300, 900, 100, unitPurchaseSceneGroup);
 
     nameString = new QGraphicsTextItem[UNIT_TYPE_MAX];
     costString = new QGraphicsTextItem[UNIT_TYPE_MAX];
@@ -808,9 +780,6 @@ int GameField::parse_map_file()
 
 void GameField::next_turn()
 {
-    emit;
-    send_ingame_cmd(INGAME_NW_CMD_NEXT_TURN, {});
-
     PlayerList* pl = game->get_player_list();
     player_color cpc = pl->get_cur_player_color();
     if (!pl->is_player_losing(cpc))
@@ -833,7 +802,7 @@ void GameField::next_turn()
 
     for (Unit *u: unitsOnGamefield)
     {
-        if (u->get_fraction() == game->get_player_list()->get_cur_player_color())
+        if (u->get_fraction() == pl->get_cur_player_color())
         {
             u->set_active();
             u->reset_speed();
@@ -841,12 +810,12 @@ void GameField::next_turn()
     }
 }
 
-int GameField::get_width()
+int GameField::get_width() const
 {
     return gameFieldWidth;
 }
 
-int GameField::get_height()
+int GameField::get_height() const
 {
     return gameFieldHeight;
 }
@@ -876,6 +845,9 @@ void GameField::send_ingame_cmd(ingame_network_cmd_types type, std::initializer_
     for (auto arg: list)
         args.push_back(static_cast<uint>(arg));
 
+    if (type == INGAME_NW_CMD_NEXT_TURN)
+        game->set_this_player_turn_false();
+
     game->send_ingame_cmd(type, args);
 }
 
@@ -886,12 +858,12 @@ void GameField::update_hud()
                             QString::number(game->get_player_list()->get_cur_player_income())));
 }
 
-SoleField *GameField::get_marked_field()
+SoleField *GameField::get_marked_field() const
 {
     return &fields[mark.get_coord_x()][mark.get_coord_y()];
 }
 
-Unit *GameField:: get_marked_field_unit()
+Unit *GameField:: get_marked_field_unit() const
 {
     return fields[mark.get_coord_x()][mark.get_coord_y()].get_unit();
 }

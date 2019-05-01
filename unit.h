@@ -86,29 +86,29 @@ class Unit: public QObject, public QGraphicsItemGroup
 public:
     Unit(int x, int y, unit_type t, player_color fraction_color);
     ~Unit();
-    int get_coord_x();
-    int get_coord_y();
+    int get_coord_x() const;
+    int get_coord_y() const;
 
     void calculate_possible_movements(QHash<QPair<int, int>, field_info> &possibleMovements);
 
     void depth_search_for_possible_moves(QHash<QPair<int, int>, field_info> &possibleMovements, int x, int y, int fieldsPassed, QVector<QPair<int, int> > &path);
     void width_search_for_enemies_in_attack_range(QHash<QPair<int, int>, field_info>& possibleMovements);
 
-    void move_unit(qreal toPosCoord_x, qreal toPosCoord_y, int numOfPassedFields);
-    void pave_the_way(int toCoord_x, int toCoord_y, int elapsedSpeed);
+    int move_unit(qreal toPosCoord_x, qreal toPosCoord_y, int numOfPassedFields);
+    int pave_the_way(int toCoord_x, int toCoord_y, int elapsedSpeed);
     int depth_search_for_the_shortest_path(int x, int y, int toCoord_x, int toCoord_y, int& elapsedSpeed);
-    unit_move_direction determine_direction(int to_x, int to_y);
+    unit_move_direction determine_direction(const int to_x, const int to_y);
 
     void add_fraction_rect();
-    player_color get_fraction();
+    player_color get_fraction() const;
     void get_fraction_name(QString &retName);
 
-    unit_combat_outcome attack(SoleField *defenderField); // TODO: change two args on SoleField* ?
+    unit_combat_outcome attack(const SoleField *defenderField);
 
     void reset_speed();
     int get_speed_left() const;
 
-    bool is_active();
+    bool is_active() const;
     void set_active();
     void set_inactive();
 
@@ -116,9 +116,9 @@ public:
     void get_name(QString& retName) const;
 
     void update_displayed_health();
-    void start_damage_received_animation(int damageReceived);
+    void start_damage_received_animation(const int damageReceived);
 
-    static const defaultUnitStats *get_record_from_default_stats_table(unit_type type);
+    static const defaultUnitStats *get_record_from_default_stats_table(const unit_type type);
 
 public slots:
     void move();
@@ -148,12 +148,12 @@ private:
     QGraphicsRectItem fractionRect;
     QGraphicsTextItem healthText;
 
-    player_color fraction;
-    void set_fraction_color();
-
     unit_type type;
     unit_attack_type attackType;
     int attackRange;
+
+    player_color fraction;
+    void set_fraction_color();
 
     int speed;
     int speedLeft;

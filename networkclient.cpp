@@ -1,6 +1,7 @@
+
 #include "networkclient.h"
 
-NetworkClient::NetworkClient(QString name, QString ip, quint16 port): thisPlayerName(name), hostIP(ip), hostPort(port)
+NetworkClient::NetworkClient(QString name, QString ip, quint16 port): hostIP(ip), hostPort(port), thisPlayerName(name)
 {
     isHost = false;
     thisPlayerIndex = -1;
@@ -8,6 +9,8 @@ NetworkClient::NetworkClient(QString name, QString ip, quint16 port): thisPlayer
     isPrefixRead = false;
     frameSize = 0;
     parse_func = &NetworkClient::parse_pregame_msg;
+
+    curPlayerIndex = 0;
 }
 
 void NetworkClient::connect_to_server()
@@ -19,6 +22,7 @@ void NetworkClient::connect_to_server()
     // connect to server
     servSock = new QTcpSocket;
     loop.connect(servSock, &QTcpSocket::readyRead, this, &NetworkClient::readyRead);
+    loop.connect(servSock, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error), this, &NetworkClient::server_shutdown);
     servSock->connectToHost(hostIP, hostPort);
     if (servSock->waitForConnected(1000))
         qDebug() << "[!]Connected\n";
@@ -88,7 +92,8 @@ int NetworkClient::parse_pregame_msg()
 
             names.push_back(newName);
             if (newName == thisPlayerName)
-                thisPlayerIndex = names.size();
+                thisPlayerIndex = names.size()-1;
+
             emit new_player_connected_sig(newName);
             break;
         }
@@ -101,6 +106,7 @@ int NetworkClient::parse_pregame_msg()
             qDebug() << "START GAME\n";
             parse_func = &NetworkClient::parse_ingame_msg;
             playerNum = names.size();
+            emit start_multiplayer_game();
             break;
         default:
             qDebug() << "Other:" << msg.type() << "\n";
@@ -109,9 +115,38 @@ int NetworkClient::parse_pregame_msg()
     return 0;
 }
 
+#define CHECK_ARGS(type, argsNum) \
+    case (type): \
+        if (cmd.args_size() != argsNum) \
+            errFlag = true; \
+            break;
+
+int NetworkClient::validation_check_ingame_cmd(inGameCmd &cmd) const
+{
+    bool errFlag = false;
+    uint type = cmd.type();
+    if (type <= INGAME_NW_CMD_NONE || type >= INGAME_NW_CMD_MAX)
+        return 1;
+
+    switch (type)
+    {
+        CHECK_ARGS(INGAME_NW_CMD_PLAYER_RECONNECTED, 0)
+        CHECK_ARGS(INGAME_NW_CMD_PLAYER_DISCONNECTED, 1)
+        CHECK_ARGS(INGAME_NW_CMD_NEXT_TURN, 0)
+        CHECK_ARGS(INGAME_NW_CMD_MOVE_UNIT, 5)
+        CHECK_ARGS(INGAME_NW_CMD_ATTACK_UNIT, 5)
+        CHECK_ARGS(INGAME_NW_CMD_PLACE_UNIT, 3)
+        CHECK_ARGS(INGAME_NW_CMD_REMOVE_UNIT, 2)
+    }
+
+    return errFlag ? 1 : 0;
+}
+#undef CHECK_ARGS
+
 int NetworkClient::parse_ingame_msg()
 {
     inGameCmd msg;
+    QVector<uint> args;
 
     if (!msg.ParseFromArray(data, data.size()))
     {
@@ -119,51 +154,69 @@ int NetworkClient::parse_ingame_msg()
         return 1;
     }
 
-    switch (msg.type())
+    if (validation_check_ingame_cmd(msg))
     {
-        case INGAME_NW_CMD_PLAYER_RECONNECTED:
-            qDebug() << "INGAME_NW_CMD_PLAYER_RECONNECTED";
-            break;
-        case INGAME_NW_CMD_PLAYER_DISCONNECTED:
-            qDebug() << "INGAME_NW_CMD_PLAYER_DISCONNECTED";
-            playerNum--;
-            break;
-        case INGAME_NW_CMD_NEXT_TURN:
-            qDebug() << "INGAME_NW_CMD_NEXT_TURN";
-            curPlayerIndex = (curPlayerIndex+1) % playerNum;
-            if (curPlayerIndex == thisPlayerIndex)
-                emit this_player_turn();
-            break;
-        case INGAME_NW_CMD_MOVE_UNIT:
-            qDebug() << "INGAME_NW_CMD_MOVE_UNIT";
-            break;
-        case INGAME_NW_CMD_ATTACK_UNIT:
-            qDebug() << "INGAME_NW_CMD_ATTACK_UNIT";
-            break;
-        case INGAME_NW_CMD_PLACE_UNIT:
-            qDebug() << "INGAME_NW_CMD_PLACE_UNIT";
-            break;
-        case INGAME_NW_CMD_REMOVE_UNIT:
-            qDebug() << "INGAME_NW_CMD_REMOVE_UNIT";
-            break;      
-        default:
-            qDebug() << "[-]Unknown type:" << msg.type();
-            break;
+        qDebug() << "[-]Validation check fail";
+        return 1;
     }
+
+    for (int i = 0; i < msg.args_size(); i++)
+        args.push_back(msg.args(i));
+    emit recv_ingame_cmd_for_execution(msg.type(), args);
+
+    if (msg.type() == INGAME_NW_CMD_NEXT_TURN)
+    {
+        curPlayerIndex = (curPlayerIndex + 1) % playerNum;
+        if (curPlayerIndex == thisPlayerIndex)
+            emit this_player_turn_start();
+    }
+    else if (msg.type() == INGAME_NW_CMD_PLAYER_DISCONNECTED)
+    {
+        int removeIndex = static_cast<int>(msg.args(0));
+        if (removeIndex == curPlayerIndex)
+        {
+            curPlayerIndex = (curPlayerIndex + 1) % playerNum;
+            if (curPlayerIndex == thisPlayerIndex)
+                emit this_player_turn_start();
+        }
+        if (removeIndex < thisPlayerIndex)
+            thisPlayerIndex--;
+        playerNum--;
+    }
+
     return 0;
+}
+
+template<class T>
+void NetworkClient::send_cmd_to_server(T &cmd)
+{
+    QByteArray payloadArray;
+    QByteArray payloadSizeArr;
+    int32_t packetSize = 0;
+    QDataStream packetSizeStream(&payloadSizeArr, QIODevice::WriteOnly);
+
+    payloadArray.resize(cmd.ByteSize());
+    cmd.SerializeToArray(payloadArray.data(), payloadArray.size());
+
+    packetSize = payloadArray.size();
+    packetSizeStream << packetSize;
+
+    servSock->write(payloadSizeArr, payloadSizeArr.size());
+    servSock->write(payloadArray, payloadArray.size());
+    servSock->flush();
 }
 
 #define SET_ARGS(type, argsNum) \
     case type: \
         Q_ASSERT(args.size() == argsNum); \
         for (int i = 0; i < argsNum; i++) \
-            cmd.set_args(i, args[i]); \
+            cmd.add_args(args[i]); \
         break;
 
-void NetworkClient::create_and_send_ingame_cmd(ingame_network_cmd_types type, QVector<uint> args)
+void NetworkClient::send_this_player_ingame_cmd(const uint type, const QVector<uint> args)
 {
     inGameCmd cmd;
-    QByteArray cmdArray;
+    QByteArray payloadArr;
 
     cmd.set_type(type);
     switch (type)
@@ -180,30 +233,16 @@ void NetworkClient::create_and_send_ingame_cmd(ingame_network_cmd_types type, QV
             break;
     }
 
-    serialize_ingame_cmd(cmd, cmdArray);
-    send_cmd_to_server(cmdArray);
+    send_cmd_to_server<inGameCmd>(cmd);
+
+    if (type == INGAME_NW_CMD_NEXT_TURN)
+    {
+        curPlayerIndex = (curPlayerIndex + 1) % playerNum;
+        if (curPlayerIndex == thisPlayerIndex)
+            emit this_player_turn_start();
+    }
 }
 #undef SET_ARGS
-
-void NetworkClient::serialize_ingame_cmd(inGameCmd &msg, QByteArray& payloadArr)
-{
-    payloadArr.resize(msg.ByteSize());
-    msg.SerializeToArray(payloadArr.data(), payloadArr.size());
-}
-
-void NetworkClient::send_cmd_to_server(QByteArray &payloadArray)
-{
-    QByteArray payloadSizeArr;
-    int32_t packetSize = 0;
-    QDataStream packetSizeStream(&payloadSizeArr, QIODevice::WriteOnly);
-
-    packetSize = payloadArray.size();
-    packetSizeStream << packetSize;
-
-    servSock->write(payloadSizeArr, payloadSizeArr.size());
-    servSock->write(payloadArray, payloadArray.size());
-    servSock->flush();
-}
 
 void NetworkClient::initial_setup()
 {
@@ -215,15 +254,8 @@ void NetworkClient::this_player_disconnected()
     servSock->close();
 }
 
-void NetworkClient::get_and_send_ingame_cmd(ingame_network_cmd_types type, QVector<uint> &args)
+void NetworkClient::server_shutdown(QAbstractSocket::SocketError sockError)
 {
-    inGameCmd cmd;
-    QByteArray payloadArr;
-
-    cmd.set_type(type);
-    for (int i = 0; i < args.size(); i++)
-        cmd.add_args(args[i]);
-
-    serialize_ingame_cmd(cmd, payloadArr);
-    send_cmd_to_server(payloadArr);
+    servSock->close();
+    emit network_error(NETWORK_ERROR_SERVER_SHUTDOWN);
 }

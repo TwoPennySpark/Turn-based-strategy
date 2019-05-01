@@ -14,7 +14,7 @@ SoleField::~SoleField()
         delete unit;
 }
 
-Unit *SoleField::get_unit()
+Unit *SoleField::get_unit() const
 {
     return unit;
 }
@@ -33,22 +33,22 @@ void SoleField::del_unit()
     }
 }
 
-terrain_type SoleField::get_terrain_type()
+terrain_type SoleField::get_terrain_type() const
 {
     return terrainType;
 }
 
-int SoleField::get_speed_modificator()
+int SoleField::get_speed_modificator() const
 {
     return speedModificator;
 }
 
-int SoleField::get_defense_bonus()
+int SoleField::get_defense_bonus() const
 {
     return defenseBonus;
 }
 
-void SoleField::get_terrain_name(QString &retName)
+void SoleField::get_terrain_name(QString &retName) const
 {
     switch (terrainType)
     {
@@ -67,7 +67,7 @@ void SoleField::get_terrain_name(QString &retName)
     }
 }
 
-void SoleField::setImg(terrain_type fieldType)
+void SoleField::setImg(const terrain_type fieldType)
 {
     switch (fieldType)
     {

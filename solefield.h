@@ -33,16 +33,16 @@ public:
     SoleField();
     ~SoleField();
 
-    Unit* get_unit();
-    void set_unit(Unit* newUnit);
+    Unit* get_unit() const;
+    void set_unit(Unit *newUnit);
     void del_unit();
 
-    terrain_type get_terrain_type();
-    int get_speed_modificator();
-    int get_defense_bonus();
-    void get_terrain_name(QString& retName);
+    terrain_type get_terrain_type() const;
+    int get_speed_modificator() const;
+    int get_defense_bonus() const;
+    void get_terrain_name(QString& retName) const;
 
-    void setImg(terrain_type randNum);
+    void setImg(const terrain_type randNum);
 private:
     Unit* unit;
     QPixmap* img;
