@@ -123,6 +123,7 @@ void PlayerList::delete_player(const player_color playerColor)
 
     if (players.size() == 1)
         show_player_won_msg_box((*curPlayerIt)->name);
+    player_lost(playerColor);
 }
 
 void PlayerList::show_player_lost_msg_box(const QString& playerName) const

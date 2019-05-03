@@ -5,16 +5,19 @@ NetworkHost::NetworkHost(QString name, quint16 hostPort, int numOfPlayers): port
 {
     isHost = true;
     playerNum = numOfPlayers;
+    playerNum = 3;
     names.reserve(playerNum);
-    connectedPlayerSockets.reserve(playerNum);
+    playersSockets.reserve(playerNum);
 
     // server player will go 1st so we push his name immediately
     // the other's player's names will be pushed in the order
     // in which they are connected to the server
     names.push_back(name);
 
+    // push nullptr cause server itself has no ingame sock
+    playersSockets.push_back(nullptr);
+
     parse_func = &NetworkHost::parse_ingame_msg;
-    curPlayerIt = connectedPlayerSockets.end();
 }
 
 NetworkHost::~NetworkHost()
@@ -54,7 +57,7 @@ void NetworkHost::create_serv()
         names.push_back(newName);
         send_list_of_names_to_new_player(sock);
         broadcast_player_connect(names[names.size()-1]);
-        connectedPlayerSockets.push_back(sock);
+        playersSockets.push_back(sock);
 
         emit new_player_connected_sig(newName);
         newName.clear();
@@ -63,7 +66,7 @@ void NetworkHost::create_serv()
     qDebug() << "START\n";
 
     listenSock->close();
-    for (auto sock: connectedPlayerSockets)
+    for (auto sock: playersSockets)
     {
         loop.connect(sock, &QTcpSocket::readyRead, this, &NetworkHost::readyRead);
         loop.disconnect(sock, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error),
@@ -116,8 +119,8 @@ void NetworkHost::broadcast_byte_array(QByteArray &payloadArray) const
 {
     prepend_length_prefix(payloadArray);
 
-    for (auto sock: connectedPlayerSockets)
-        sock->write(payloadArray, payloadArray.size());
+    for (int i = 1; i < playersSockets.size(); i++)
+        playersSockets[i]->write(payloadArray, payloadArray.size());
 }
 
 void NetworkHost::prepend_length_prefix(QByteArray &payloadArr) const
@@ -135,7 +138,7 @@ void NetworkHost::prepend_length_prefix(QByteArray &payloadArr) const
 void NetworkHost::readyRead()
 {
     QTcpSocket* sock = qobject_cast<QTcpSocket*>(QObject::sender());
-    if (sock != *curPlayerIt)
+    if (sock != playersSockets[curPlayerIndex])
         return;
 
     do
@@ -146,7 +149,7 @@ void NetworkHost::readyRead()
 
 void NetworkHost::read_frame_size_prefix()
 {
-    data.append((*curPlayerIt)->read(LENGTH_PREFIX_SIZE - static_cast<uint>(data.size())));
+    data.append(playersSockets[curPlayerIndex]->read(LENGTH_PREFIX_SIZE - static_cast<uint>(data.size())));
 
     if (static_cast<uint>(data.size()) == LENGTH_PREFIX_SIZE)
     {
@@ -159,7 +162,7 @@ void NetworkHost::read_frame_size_prefix()
 
 void NetworkHost::read_and_parse_frame()
 {
-    data.append((*curPlayerIt)->read(frameSize + LENGTH_PREFIX_SIZE - data.size()));
+    data.append(playersSockets[curPlayerIndex]->read(frameSize + LENGTH_PREFIX_SIZE - data.size()));
 
     if (frameSize + LENGTH_PREFIX_SIZE == data.size())
     {
@@ -176,12 +179,9 @@ void NetworkHost::read_and_parse_frame()
 
 void NetworkHost::forward_incoming_cmd_to_other_players(const QByteArray &payloadArray) const
 {
-    for (auto sock: connectedPlayerSockets)
-    {
-        if (sock == *curPlayerIt)
-            continue;
-        sock->write(payloadArray, payloadArray.size());
-    }
+    for (int i = 1; i < playersSockets.size(); i++)
+        if (!(playersSockets[i] == playersSockets[curPlayerIndex]))
+            playersSockets[i]->write(payloadArray, payloadArray.size());
 }
 
 int NetworkHost::parse_ingame_msg()
@@ -200,11 +200,7 @@ int NetworkHost::parse_ingame_msg()
     emit recv_ingame_cmd_for_execution(msg.type(), args);
 
     if (msg.type() == INGAME_NW_CMD_NEXT_TURN)
-    {
-        curPlayerIt++;
-        if (curPlayerIt == connectedPlayerSockets.end())
-            emit this_player_turn_start();
-    }
+        next_turn();
 
     return 0;
 }
@@ -220,7 +216,7 @@ void NetworkHost::send_this_player_ingame_cmd(const uint type, const QVector<uin
         cmd.add_args(args[i]);
 
     if (cmd.type() == INGAME_NW_CMD_NEXT_TURN)
-        curPlayerIt = connectedPlayerSockets.begin();
+        next_turn();
 
     broadcast_cmd<inGameCmd>(cmd);
 }
@@ -256,19 +252,28 @@ void NetworkHost::broadcast_start_message()
     broadcast_cmd<preGameCmd>(msg);
 }
 
+void NetworkHost::next_turn()
+{
+    curPlayerIndex = (curPlayerIndex + 1) % playerNum;
+    while (lostPlayerIndexes.contains(curPlayerIndex))
+        curPlayerIndex = (curPlayerIndex + 1) % playerNum;
+    if (curPlayerIndex == 0)
+        emit this_player_turn_start();
+}
+
 void NetworkHost::handle_pregame_disconnect(QAbstractSocket::SocketError sockError)
 {
     QTcpSocket *sock = qobject_cast<QTcpSocket*>(QObject::sender());
 
-    int index = connectedPlayerSockets.indexOf(sock);
-    qDebug() << "(" << QThread::currentThreadId() << "):[-]Error:" << sock->errorString() << "\nPlayer " << names[index+1] << " disconnected";
+    int index = playersSockets.indexOf(sock);
+    qDebug() << "(" << QThread::currentThreadId() << "):[-]Error:" << sock->errorString() << "\nPlayer " << names[index] << " disconnected";
 
-    emit player_disconnected_sig(names[index+1]);
+    emit player_disconnected_sig(names[index]);
 
-    connectedPlayerSockets.remove(index);
-    names.remove(index+1);
+    playersSockets.remove(index);
+    names.remove(index);
 
-    this->broadcast_player_disconnect(static_cast<uint>(index+1));
+    this->broadcast_player_disconnect(static_cast<uint>(index));
 
     sock->close();
 }
@@ -277,23 +282,23 @@ void NetworkHost::handle_ingame_disconnect(QAbstractSocket::SocketError sockErro
 {
     QTcpSocket *sock = qobject_cast<QTcpSocket*>(QObject::sender());
 
-    int index = connectedPlayerSockets.indexOf(sock);
-    qDebug() << "(" << QThread::currentThreadId() << "):[-]Error:" << sock->errorString() << "\nPlayer " << names[index+1] << " disconnected";
-    connectedPlayerSockets.remove(index);
-    names.remove(index+1);
-    if (curPlayerIt == connectedPlayerSockets.end())
-        curPlayerIt = connectedPlayerSockets.begin();
+    int index = playersSockets.indexOf(sock);
+    qDebug() << "(" << QThread::currentThreadId() << "):[-]Error:" << sock->errorString() << "\nPlayer " << names[index] << " disconnected";
+
+    lostPlayerIndexes.push_back(index);
+    if (curPlayerIndex == index)
+        next_turn();
 
     // notify everyone else that player disconnected
     inGameCmd cmd;
     QByteArray payloadArr;
     cmd.set_type(INGAME_NW_CMD_PLAYER_DISCONNECTED);
-    cmd.add_args(static_cast<uint>(index+1));
+    cmd.add_args(static_cast<uint>(index));
     broadcast_cmd<inGameCmd>(cmd);
 
     // send cmd to game thread
     QVector<uint>args;
-    args.push_back(static_cast<uint>(index+1));
+    args.push_back(static_cast<uint>(index));
     emit recv_ingame_cmd_for_execution(INGAME_NW_CMD_PLAYER_DISCONNECTED, args);
 
     sock->close();
@@ -308,5 +313,10 @@ void NetworkHost::this_player_disconnected()
 {
     listenSock->close();
 
-    std::for_each(connectedPlayerSockets.begin(), connectedPlayerSockets.end(), [](QTcpSocket* sock){sock->close();});
+    std::for_each(playersSockets.begin()+1, playersSockets.end(), [](QTcpSocket* sock){sock->close();});
+}
+
+void NetworkHost::handle_player_loss(int loserIndex)
+{
+    lostPlayerIndexes.push_back(loserIndex);
 }

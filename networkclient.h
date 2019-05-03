@@ -28,10 +28,12 @@ public:
 
     int validation_check_ingame_cmd(inGameCmd &cmd) const;
 
+    void next_turn();
+
     void initial_setup();
     void this_player_disconnected();
     void send_this_player_ingame_cmd(const uint type, const QVector<uint> args);
-
+    void handle_player_loss(int loserIndex);
 private:
     QString hostIP;
     quint16 hostPort;
@@ -39,7 +41,6 @@ private:
 
     int thisPlayerIndex;
     QString thisPlayerName;
-    QVector<QString> names;
 
     typedef int (NetworkClient::*parse_arr_func)();
     parse_arr_func parse_func;

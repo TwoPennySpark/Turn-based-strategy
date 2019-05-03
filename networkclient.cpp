@@ -141,6 +141,7 @@ int NetworkClient::validation_check_ingame_cmd(inGameCmd &cmd) const
 
     return errFlag ? 1 : 0;
 }
+
 #undef CHECK_ARGS
 
 int NetworkClient::parse_ingame_msg()
@@ -165,23 +166,13 @@ int NetworkClient::parse_ingame_msg()
     emit recv_ingame_cmd_for_execution(msg.type(), args);
 
     if (msg.type() == INGAME_NW_CMD_NEXT_TURN)
-    {
-        curPlayerIndex = (curPlayerIndex + 1) % playerNum;
-        if (curPlayerIndex == thisPlayerIndex)
-            emit this_player_turn_start();
-    }
+        next_turn();
     else if (msg.type() == INGAME_NW_CMD_PLAYER_DISCONNECTED)
     {
         int removeIndex = static_cast<int>(msg.args(0));
+        lostPlayerIndexes.push_back(removeIndex);
         if (removeIndex == curPlayerIndex)
-        {
-            curPlayerIndex = (curPlayerIndex + 1) % playerNum;
-            if (curPlayerIndex == thisPlayerIndex)
-                emit this_player_turn_start();
-        }
-        if (removeIndex < thisPlayerIndex)
-            thisPlayerIndex--;
-        playerNum--;
+            next_turn();
     }
 
     return 0;
@@ -236,13 +227,24 @@ void NetworkClient::send_this_player_ingame_cmd(const uint type, const QVector<u
     send_cmd_to_server<inGameCmd>(cmd);
 
     if (type == INGAME_NW_CMD_NEXT_TURN)
-    {
-        curPlayerIndex = (curPlayerIndex + 1) % playerNum;
-        if (curPlayerIndex == thisPlayerIndex)
-            emit this_player_turn_start();
-    }
+        next_turn();
 }
+
 #undef SET_ARGS
+
+void NetworkClient::next_turn()
+{
+    curPlayerIndex = (curPlayerIndex + 1) % playerNum;
+    while (lostPlayerIndexes.contains(curPlayerIndex))
+        curPlayerIndex = (curPlayerIndex + 1) % playerNum;
+    if (curPlayerIndex == thisPlayerIndex)
+        emit this_player_turn_start();
+}
+
+void NetworkClient::handle_player_loss(int loserIndex)
+{
+    lostPlayerIndexes.push_back(loserIndex);
+}
 
 void NetworkClient::initial_setup()
 {

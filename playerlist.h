@@ -17,8 +17,9 @@ typedef struct player
     int turnsBeforeLosing;
 }player;
 
-class PlayerList
+class PlayerList: public QObject
 {
+    Q_OBJECT
 public:
     PlayerList(QVector<QString>& playerNames);
     ~PlayerList();
@@ -37,9 +38,9 @@ public:
 
     bool is_player_losing(const player_color playerColor) const;
     void set_player_countdown(const player_color playerColor, const bool status);
-    int decrement_countdown(const player_color playerColor);
     int get_turns_left(const player_color playerColor) const;
     void set_turns_left(const player_color playerColor, const int turnsLeft);
+    int decrement_countdown(const player_color playerColor);
     void delete_player(const player_color playerColor);
 
     void show_player_lost_msg_box(const QString &playerName) const;
@@ -52,6 +53,9 @@ private:
     int curPlayerIndex = 0;
     QVector<player*> players;
     QVector<player*>::iterator curPlayerIt;
+
+signals:
+    void player_lost(int playerIndex);
 };
 
 #endif // PLAYERLIST_H

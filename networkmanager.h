@@ -63,7 +63,8 @@ protected:
 
     QByteArray data;
 
-    QVector<QString> playerNames;
+    QVector<QString> names;
+    QVector<int>lostPlayerIndexes;
 
 //    virtual void read_frame_size_prefix() = 0;
 //    virtual void read_and_parse_frame() = 0;
@@ -73,6 +74,8 @@ public slots:
 //    virtual void readyRead() = 0;
     virtual void this_player_disconnected() = 0;
     virtual void send_this_player_ingame_cmd(const uint type, const QVector<uint> args) = 0;
+    virtual void handle_player_loss(int index) = 0;
+
 signals:
     void this_player_turn_start();
     void network_manager_success(bool isHost);

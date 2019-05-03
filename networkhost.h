@@ -36,15 +36,17 @@ public:
     void read_and_parse_frame();
     int parse_ingame_msg();
 
+    void next_turn();
+
     void this_player_disconnected();
+    void handle_player_loss(int loserIndex);
+
 private:
     quint16 port;
     QTcpServer* listenSock;
 
-    QVector<QString> names;
-    QVector<QTcpSocket*> connectedPlayerSockets;
-    QVector<QTcpSocket*> losersSockets;
-    QVector<QTcpSocket*>::iterator curPlayerIt;
+//    QVector<QString> names;
+    QVector<QTcpSocket*> playersSockets;
 
     typedef int (NetworkHost::*parse_arr_func)();
     parse_arr_func parse_func;

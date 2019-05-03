@@ -255,6 +255,7 @@ void Game::start_multiplayer()
     view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     playerList = new PlayerList(playerNames);
+    connect(this->playerList, &PlayerList::player_lost, netMng, &NetworkManager::handle_player_loss);
     state = STATE_BASIC;
     gameField = new GameField(view);
 }

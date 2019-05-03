@@ -7,18 +7,6 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
 
-//    QVector<int>b{0,1,2,3,4};
-//    QVector<int>::iterator curIt = b.begin();
-
-//    curIt += 2;
-//    qDebug() << *curIt;
-//    b.remove(2);
-//    if (curIt == b.end())
-//        qDebug() << "END";
-//    else
-//        qDebug() << *curIt;
-//    return 0;
-
     qDebug() << "GUI THREAD: " << QThread::currentThreadId() << "\n";
 
     game = new Game();
