@@ -9,8 +9,11 @@ NetworkClient::NetworkClient(QString name, QString ip, quint16 port): hostIP(ip)
     isPrefixRead = false;
     frameSize = 0;
     parse_func = &NetworkClient::parse_pregame_msg;
+}
 
-    curPlayerIndex = 0;
+NetworkClient::~NetworkClient()
+{
+    delete servSock;
 }
 
 void NetworkClient::connect_to_server()
@@ -22,10 +25,13 @@ void NetworkClient::connect_to_server()
     // connect to server
     servSock = new QTcpSocket;
     loop.connect(servSock, &QTcpSocket::readyRead, this, &NetworkClient::readyRead);
-    loop.connect(servSock, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error), this, &NetworkClient::server_shutdown);
+//    loop.connect(servSock, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error), this, &NetworkClient::server_shutdown);
     servSock->connectToHost(hostIP, hostPort);
-    if (servSock->waitForConnected(1000))
-        qDebug() << "[!]Connected\n";
+    if (!servSock->waitForConnected(1000))
+    {
+        emit network_error(NETWORK_ERROR_CANT_ESTABLISH_CONNECTION_WITH_SERVER);
+        return;
+    }
 
     // send player's name
     servSock->write(QByteArray(thisPlayerName.toUtf8()));
@@ -39,12 +45,11 @@ void NetworkClient::connect_to_server()
 void NetworkClient::read_frame_size_prefix()
 {
     data.append(servSock->read(LENGTH_PREFIX_SIZE - static_cast<uint>(data.size())));
-    qDebug() <<  "ARR" << data.size() << data;
+
     if (static_cast<uint>(data.size()) == LENGTH_PREFIX_SIZE)
     {
         isPrefixRead = true;
         frameSize = byteArrayToInt(data);
-        qDebug() << "FRAME SIZE = " << frameSize;
         data.clear();
 
         read_and_parse_frame();
@@ -71,6 +76,28 @@ void NetworkClient::readyRead()
     {
         isPrefixRead ? read_and_parse_frame() : read_frame_size_prefix();
     } while (servSock->bytesAvailable());
+}
+
+int NetworkClient::validation_check_pregame_cmd(preGameCmd &cmd) const
+{
+    bool errFlag = false;
+    uint type = cmd.type();
+    if (type <= PREGAME_NW_CMD_NONE || type >= PREGAME_NW_CMD_MAX)
+        return 1;
+
+    switch (type)
+    {
+        case PREGAME_NW_CMD_PLAYER_CONNECTED:
+            if (cmd.name().empty())
+                errFlag = true;
+            break;
+        case PREGAME_NW_CMD_PLAYER_DISCONNECTED:
+            if (cmd.indexnum() >= static_cast<uint>(names.size()))
+                errFlag = true;
+            break;
+        default:
+            break;
+    }
 }
 
 int NetworkClient::parse_pregame_msg()
@@ -101,6 +128,10 @@ int NetworkClient::parse_pregame_msg()
             qDebug() << "Player disconnected: " << names[static_cast<int>(msg.indexnum())] << "\n";
             emit player_disconnected_sig(names[static_cast<int>(msg.indexnum())]);
             names.remove(static_cast<int>(msg.indexnum()));
+            break;
+        case PREGAME_NW_CMD_PLAYER_REQ_CHANGE_NAME:
+            qDebug() << "PREGAME_NW_CMD_PLAYER_REQ_CHANGE_NAME\n";
+            emit network_error(NETWORK_ERROR_NAME_ALREADY_TAKEN);
             break;
         case PREGAME_NW_CMD_START_GAME:
             qDebug() << "START GAME\n";

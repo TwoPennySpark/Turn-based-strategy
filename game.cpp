@@ -123,15 +123,24 @@ void Game::show_multiplayer_settings_menu()
     clear_main_window();
 
     QVBoxLayout *enterNameLayout = new QVBoxLayout;
-    QLabel* nameLabel = new QLabel("Enter your name");
+    QLabel* nameLabel = new QLabel("Enter your name - it must be more than 3 characters long and should not exceed 64 characters");
     QLineEdit *nameEdit = new QLineEdit();
     nameEdit->setAlignment(Qt::AlignCenter);
     nameEdit->setText("Player");
 
     QPushButton* connectButton = new QPushButton("Connect");
-    connect(connectButton, &QPushButton::clicked, [nameEdit, this](){this->show_connect_menu(nameEdit->text());});
+    connect(connectButton, &QPushButton::clicked, [nameEdit, this](){
+            QString name = nameEdit->text();
+            if (name.size() >= 4 && name.size() <= 64)
+                this->show_connect_menu(name);
+        });
+
     QPushButton* createServButton = new QPushButton("Create a server");
-    connect(createServButton, &QPushButton::clicked, [nameEdit, this](){this->show_create_serv_menu(nameEdit->text());});
+    connect(createServButton, &QPushButton::clicked, [nameEdit, this](){
+        QString name = nameEdit->text();
+        if (name.size() >= 4 && name.size() <= 64)
+            this->show_create_serv_menu(name);
+    });
 
     enterNameLayout->addWidget(nameLabel);
     enterNameLayout->addWidget(nameEdit);
@@ -156,7 +165,7 @@ void Game::show_connect_menu(QString name)
 
     QPushButton *connectButton = new QPushButton("Connect");
     connect(connectButton, &QPushButton::clicked,
-            [this, name, ipEdit, portEdit](){this->create_network_thread(name, false, ipEdit->text(), portEdit->text().toInt());});
+            [this, name, ipEdit, portEdit](){this->create_network_thread(name, false, ipEdit->text(), static_cast<quint16>(portEdit->text().toInt()));});
 
     connectMenuLayout->addWidget(ipLabel);
     connectMenuLayout->addWidget(ipEdit);
@@ -177,7 +186,7 @@ void Game::show_create_serv_menu(QString name)
 
     QPushButton *createServButton = new QPushButton("Create a server");
     connect(createServButton, &QPushButton::clicked,
-            [this, portEdit, name](){this->create_network_thread(name, true, "127.0.0.1", portEdit->text().toInt());});
+            [this, portEdit, name](){this->create_network_thread(name, true, "127.0.0.1", static_cast<quint16>(portEdit->text().toInt()));});
 
     createServLayout->addWidget(portLabel);
     createServLayout->addWidget(portEdit);
@@ -199,8 +208,8 @@ void Game::create_network_thread(QString name, bool createServer, QString host, 
     connect(netMng, &NetworkManager::network_error, this, &Game::show_network_error_msg);
 
     networkThread = new QThread;
-    networkThread->start();
     netMng->moveToThread(networkThread);
+    networkThread->start();
 
     emit network_initial_setup();
 }
@@ -233,7 +242,7 @@ void Game::show_waiting_for_players_screen(bool isHost)
 
     QPushButton* disconnectButton = new QPushButton("Disconnect");
     connect(disconnectButton, &QPushButton::clicked, netMng, &NetworkManager::this_player_disconnected);
-    connect(disconnectButton, &QPushButton::clicked, [this](){this->clear_main_window(); this->show_main_menu();});
+    connect(disconnectButton, &QPushButton::clicked, [this](){this->clear_main_window(); /*this->show_main_menu()*/this->roll_back_to_main_menu();});
 
     layout->addWidget(playersReadyLabel);
     layout->addWidget(playersListLabel);
@@ -319,6 +328,9 @@ int Game::multiplayer_ingame_cmd_validation_check(const uint type, const QVector
 
     if (type <= INGAME_NW_CMD_NONE || type >= INGAME_NW_CMD_MAX)
         return 1;
+
+    const uint gameFieldWidth = static_cast<uint>(gameField->get_width());
+    const uint gameFieldHeight = static_cast<uint>(gameField->get_height());
     switch (type)
     {
         case INGAME_NW_CMD_PLAYER_RECONNECTED:
@@ -330,28 +342,28 @@ int Game::multiplayer_ingame_cmd_validation_check(const uint type, const QVector
         case INGAME_NW_CMD_NEXT_TURN:
             break;
         case INGAME_NW_CMD_MOVE_UNIT:
-            if (!(args[0] < gameField->get_width()  &&
-                  args[1] < gameField->get_height() &&
-                  args[2] < gameField->get_width()  &&
-                  args[3] < gameField->get_height()))
+            if (!(args[0] < gameFieldWidth &&
+                  args[1] < gameFieldHeight &&
+                  args[2] < gameFieldWidth  &&
+                  args[3] < gameFieldHeight))
                 errFlag = true;
             break;
         case INGAME_NW_CMD_ATTACK_UNIT:
-            if (!(args[0] < gameField->get_width()  &&
-                  args[1] < gameField->get_height() &&
-                  args[2] < gameField->get_width()  &&
-                  args[3] < gameField->get_height()))
+            if (!(args[0] < gameFieldWidth &&
+                  args[1] < gameFieldHeight &&
+                  args[2] < gameFieldWidth &&
+                  args[3] < gameFieldHeight))
                 errFlag = true;
             break;
         case INGAME_NW_CMD_PLACE_UNIT:
-            if (!(args[0] < gameField->get_width()  &&
-                  args[1] < gameField->get_height() &&
+            if (!(args[0] < gameFieldWidth  &&
+                  args[1] < gameFieldHeight &&
                   args[2] < UNIT_TYPE_MAX))
                 errFlag = true;
             break;
         case INGAME_NW_CMD_REMOVE_UNIT:
-            if (!(args[0] < gameField->get_width()  &&
-                  args[1] < gameField->get_height()))
+            if (!(args[0] < gameFieldWidth &&
+                  args[1] < gameFieldHeight))
                 errFlag = true;
             break;
         default:
@@ -416,7 +428,7 @@ void Game::execute_multiplayer_ingame_cmd(const uint type, const QVector<uint> a
     }
 }
 
-void Game::show_network_error_msg(int code)
+void Game::show_network_error_msg(const int code)
 {
     QMessageBox msgBox;
 
@@ -427,6 +439,12 @@ void Game::show_network_error_msg(int code)
             break;
         case NETWORK_ERROR_THIS_PLAYER_DISCONNECT:
             msgBox.setText(QString("Connection lost"));
+            break;
+        case NETWORK_ERROR_NAME_ALREADY_TAKEN:
+            msgBox.setText(QString("This name is already taken"));
+            break;
+        case NETWORK_ERROR_CANT_ESTABLISH_CONNECTION_WITH_SERVER:
+            msgBox.setText(QString("Can't establish connection with the server"));
             break;
         default:
             msgBox.setText(QString("Unknown error"));
@@ -448,6 +466,7 @@ void Game::roll_back_to_main_menu()
 
     netMng->deleteLater();
     networkThread->quit();
+    networkThread->wait();
     networkThread->deleteLater();
 
     if (state != STATE_NONE)
@@ -494,5 +513,5 @@ void Game::clear_main_window()
         delete item;
     }
     delete mainWidget->layout();
-    mainWidget->setLayout(nullptr);
+//    mainWidget->setLayout(nullptr);
 }

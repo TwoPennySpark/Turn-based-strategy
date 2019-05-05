@@ -86,7 +86,7 @@ public slots:
     void show_waiting_for_players_screen(bool isHost);
     void set_this_player_turn_true();
     void execute_multiplayer_ingame_cmd(const uint type, const QVector<uint> args);
-    void show_network_error_msg(int code);
+    void show_network_error_msg(const int code);
     void roll_back_to_main_menu();
 };
 

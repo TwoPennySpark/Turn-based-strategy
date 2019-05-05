@@ -15,6 +15,7 @@ class NetworkClient: public NetworkManager
 
 public:
     NetworkClient(QString name, QString ip, quint16 port);
+    ~NetworkClient();
     void connect_to_server();
 
     void readyRead();
@@ -26,6 +27,7 @@ public:
     template<class T>
     void send_cmd_to_server(T &cmd);
 
+    int validation_check_pregame_cmd(preGameCmd &cmd) const;
     int validation_check_ingame_cmd(inGameCmd &cmd) const;
 
     void next_turn();

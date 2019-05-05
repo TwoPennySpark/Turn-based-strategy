@@ -2,8 +2,16 @@
 
 NetworkManager::NetworkManager()
 {
+    qDebug() << "nm";
     frameSize = 0;
     isPrefixRead = false;
+
+    curPlayerIndex = 0;
+}
+
+NetworkManager::~NetworkManager()
+{
+    qDebug() << "dnm";
 }
 
 int byteArrayToInt(QByteArray& arr)

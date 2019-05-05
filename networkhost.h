@@ -19,6 +19,7 @@ public:
 
     void initial_setup();
     void create_serv();
+    void handle_new_player(QTcpSocket *newPlayerSock);
     void send_list_of_names_to_new_player(QTcpSocket *newPlayerSock);
     void broadcast_player_connect(const QString &name);
     void broadcast_player_disconnect(const unsigned int index);
