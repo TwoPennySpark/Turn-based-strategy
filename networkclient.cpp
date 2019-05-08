@@ -18,28 +18,24 @@ NetworkClient::~NetworkClient()
 
 void NetworkClient::connect_to_server()
 {
-    QEventLoop loop;
-
     qDebug() << "Attempt connect to " << hostIP << "::" << hostPort << "\n";
 
     // connect to server
     servSock = new QTcpSocket;
-    loop.connect(servSock, &QTcpSocket::readyRead, this, &NetworkClient::readyRead);
-//    loop.connect(servSock, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error), this, &NetworkClient::server_shutdown);
+    connect(servSock, &QTcpSocket::readyRead, this, &NetworkClient::readyRead);
     servSock->connectToHost(hostIP, hostPort);
-    if (!servSock->waitForConnected(1000))
+    if (!servSock->waitForConnected(3000))
     {
+        qDebug() << "[-]Attempt failed";
         emit network_error(NETWORK_ERROR_CANT_ESTABLISH_CONNECTION_WITH_SERVER);
         return;
     }
+    connect(servSock, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error), this, &NetworkClient::server_shutdown);
 
     // send player's name
     servSock->write(QByteArray(thisPlayerName.toUtf8()));
-    servSock->flush();
 
     emit network_manager_success(isHost);
-
-    loop.exec();
 }
 
 void NetworkClient::read_frame_size_prefix()
@@ -98,6 +94,8 @@ int NetworkClient::validation_check_pregame_cmd(preGameCmd &cmd) const
         default:
             break;
     }
+
+    return errFlag ? 1 : 0;
 }
 
 int NetworkClient::parse_pregame_msg()
@@ -107,6 +105,12 @@ int NetworkClient::parse_pregame_msg()
     if (!msg.ParseFromArray(data, data.size()))
     {
         qDebug() << "[-]Failed data:" << data << "\n";
+        return 1;
+    }
+
+    if (validation_check_pregame_cmd(msg))
+    {
+        qDebug() << "[-]Validation check fail";
         return 1;
     }
 

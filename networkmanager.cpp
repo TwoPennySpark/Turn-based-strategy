@@ -2,7 +2,6 @@
 
 NetworkManager::NetworkManager()
 {
-    qDebug() << "nm";
     frameSize = 0;
     isPrefixRead = false;
 
@@ -11,7 +10,7 @@ NetworkManager::NetworkManager()
 
 NetworkManager::~NetworkManager()
 {
-    qDebug() << "dnm";
+
 }
 
 int byteArrayToInt(QByteArray& arr)

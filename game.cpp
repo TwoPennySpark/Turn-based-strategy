@@ -103,7 +103,7 @@ void Game::show_main_menu()
 
 void Game::start_hot_seat()
 {
-//    clear_main_window();
+    clear_main_window();
     mainWidget->hide();
 
     view = new QGraphicsView();
@@ -129,14 +129,16 @@ void Game::show_multiplayer_settings_menu()
     nameEdit->setText("Player");
 
     QPushButton* connectButton = new QPushButton("Connect");
-    connect(connectButton, &QPushButton::clicked, [nameEdit, this](){
-            QString name = nameEdit->text();
-            if (name.size() >= 4 && name.size() <= 64)
-                this->show_connect_menu(name);
-        });
+    connect(connectButton, &QPushButton::clicked, [nameEdit, this]()
+    {
+        QString name = nameEdit->text();
+        if (name.size() >= 4 && name.size() <= 64)
+            this->show_connect_menu(name);
+    });
 
     QPushButton* createServButton = new QPushButton("Create a server");
-    connect(createServButton, &QPushButton::clicked, [nameEdit, this](){
+    connect(createServButton, &QPushButton::clicked, [nameEdit, this]()
+    {
         QString name = nameEdit->text();
         if (name.size() >= 4 && name.size() <= 64)
             this->show_create_serv_menu(name);
@@ -197,7 +199,6 @@ void Game::show_create_serv_menu(QString name)
 
 void Game::create_network_thread(QString name, bool createServer, QString host, quint16 port)
 {
-    qRegisterMetaType<QVector<uint> >("QVector<uint>");
     createServer ? (netMng = new NetworkHost(name, port, PLAYER_MAX)) : (netMng = new NetworkClient(name, host, port));
     connect(this, &Game::network_initial_setup, netMng, &NetworkManager::initial_setup);
     connect(this, &Game::send_ingame_cmd, netMng, &NetworkManager::send_this_player_ingame_cmd);
@@ -242,7 +243,7 @@ void Game::show_waiting_for_players_screen(bool isHost)
 
     QPushButton* disconnectButton = new QPushButton("Disconnect");
     connect(disconnectButton, &QPushButton::clicked, netMng, &NetworkManager::this_player_disconnected);
-    connect(disconnectButton, &QPushButton::clicked, [this](){this->clear_main_window(); /*this->show_main_menu()*/this->roll_back_to_main_menu();});
+    connect(disconnectButton, &QPushButton::clicked, [this](){this->clear_main_window(); this->roll_back_to_main_menu();});
 
     layout->addWidget(playersReadyLabel);
     layout->addWidget(playersListLabel);
@@ -329,7 +330,7 @@ int Game::multiplayer_ingame_cmd_validation_check(const uint type, const QVector
     if (type <= INGAME_NW_CMD_NONE || type >= INGAME_NW_CMD_MAX)
         return 1;
 
-    const uint gameFieldWidth = static_cast<uint>(gameField->get_width());
+    const uint gameFieldWidth  = static_cast<uint>(gameField->get_width());
     const uint gameFieldHeight = static_cast<uint>(gameField->get_height());
     switch (type)
     {
@@ -463,6 +464,7 @@ void Game::roll_back_to_main_menu()
     isMultiplayerGame = false;
     thisPlayerTurn = false;
     playerNum = 0;
+    playerNames.clear();
 
     netMng->deleteLater();
     networkThread->quit();
@@ -513,5 +515,4 @@ void Game::clear_main_window()
         delete item;
     }
     delete mainWidget->layout();
-//    mainWidget->setLayout(nullptr);
 }

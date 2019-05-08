@@ -1,7 +1,6 @@
 #ifndef PLAYERLIST_H
 #define PLAYERLIST_H
 
-#include <QVector>
 #include <QMessageBox>
 #include "unit.h"
 
@@ -20,6 +19,7 @@ typedef struct player
 class PlayerList: public QObject
 {
     Q_OBJECT
+
 public:
     PlayerList(QVector<QString>& playerNames);
     ~PlayerList();

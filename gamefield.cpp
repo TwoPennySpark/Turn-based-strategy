@@ -1,10 +1,6 @@
 ﻿#include "gamefield.h"
 #include "game.h"
 
-#include <QHash>
-#include <QPair>
-#include <QVector>
-
 extern Game* game;
 
 GameField::GameField(QGraphicsView *view, QWidget *parent): QGraphicsScene(parent)
@@ -423,7 +419,7 @@ void GameField::one_unit_attack_another(SoleField *attackerField, SoleField *def
         case UNIT_COMBAT_DEFENDER_DESTROYED:
             remove_unit_from_gamefield(defenderField);
 
-            if (selectedUnitField->get_unit()->get_attack_type() == UNIT_ATTACK_TYPE_MELEE)
+            if (attackerField->get_unit()->get_attack_type() == UNIT_ATTACK_TYPE_MELEE)
                 move_unit_to_another_field(attackerField, defenderField, minElapsedSpeed);
             break;
         case UNIT_COMBAT_ATTACKER_DESTROYED:

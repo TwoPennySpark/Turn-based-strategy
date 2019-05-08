@@ -3,9 +3,6 @@
 
 Game* game;
 
-//    template <typename... Args>
-//    void print(Args... args){(std::cout << ... << args);}
-
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);

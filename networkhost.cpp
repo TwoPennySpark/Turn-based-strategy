@@ -3,10 +3,9 @@
 
 NetworkHost::NetworkHost(QString name, quint16 hostPort, int numOfPlayers): port(hostPort)
 {
-    qDebug() << "nm2";
     isHost = true;
     playerNum = numOfPlayers;
-    playerNum = 3;
+
     names.reserve(playerNum);
     playersSockets.reserve(playerNum);
 
@@ -23,18 +22,15 @@ NetworkHost::NetworkHost(QString name, quint16 hostPort, int numOfPlayers): port
 
 NetworkHost::~NetworkHost()
 {
-    qDebug() << "dnh";
     delete listenSock;
 }
 
 void NetworkHost::create_serv()
 {
-    QEventLoop loop;
-
     listenSock = new QTcpServer;
     if (!listenSock->listen(QHostAddress::Any, 5555))
     {
-        qDebug() << "[-]Attempt failed\n";
+        qDebug() << "[-]Attempt failed";
         return;
     }
 
@@ -42,47 +38,23 @@ void NetworkHost::create_serv()
     emit new_player_connected_sig(names[0]);
     qDebug() << "NETWORK THREAD: " << QThread::currentThreadId() << "\n";
 
-    while (names.size() != playerNum)
-    {
-        loop.processEvents();
-        if (!listenSock->waitForNewConnection(3000))
-            continue;
-
-        QTcpSocket* sock = listenSock->nextPendingConnection();
-        loop.connect(sock, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error),
-                     this, QOverload<QAbstractSocket::SocketError>::of(&NetworkHost::handle_pregame_disconnect));
-        if (!sock->waitForReadyRead(5000))
-            continue;
-
-        handle_new_player(sock);
-    }
-
-    qDebug() << "START\n";
-
-    listenSock->close();
-    for (int i = 1; i < playersSockets.size(); i++)
-    {
-        loop.connect(playersSockets[i], &QTcpSocket::readyRead, this, &NetworkHost::readyRead);
-        loop.disconnect(playersSockets[i], QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error),
-                        this, QOverload<QAbstractSocket::SocketError>::of(&NetworkHost::handle_pregame_disconnect));
-        loop.connect(playersSockets[i], QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error),
-                     this, QOverload<QAbstractSocket::SocketError>::of(&NetworkHost::handle_ingame_disconnect));
-    }
-
-    emit this_player_turn_start();
-    broadcast_start_message();
-    emit start_multiplayer_game();
-
-    loop.exec();
+    connect(listenSock, &QTcpServer::newConnection, this, &NetworkHost::handle_new_player);
 }
 
-void NetworkHost::handle_new_player(QTcpSocket *newPlayerSock)
+void NetworkHost::handle_new_player()
 {
     QByteArray newName;
+    QTcpSocket* newPlayerSock = listenSock->nextPendingConnection();
+
+    if (!newPlayerSock->waitForReadyRead(5000))
+    {
+        newPlayerSock->close();
+        return;
+    }
 
     newName = newPlayerSock->read(64);
     if (names.contains(newName) || static_cast<uint>(newName.size()) < MIN_NAME_LENGTH)
-    {
+    {// if name is already taken or invalid
         preGameCmd cmd;
         QByteArray payloadArr;
 
@@ -98,12 +70,17 @@ void NetworkHost::handle_new_player(QTcpSocket *newPlayerSock)
     }
     else
     {
+        connect(newPlayerSock, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error),
+                this, QOverload<QAbstractSocket::SocketError>::of(&NetworkHost::handle_pregame_disconnect));
+
         names.push_back(newName);
         send_list_of_names_to_new_player(newPlayerSock);
         broadcast_player_connect(names[names.size()-1]);
         playersSockets.push_back(newPlayerSock);
-
         emit new_player_connected_sig(newName);
+
+        if (names.size() == playerNum)
+            start_game();
     }
 }
 
@@ -128,6 +105,25 @@ void NetworkHost::send_list_of_names_to_new_player(QTcpSocket *newPlayerSock)
         payloadArr.clear();
         msg.clear_name();
     }
+}
+
+void NetworkHost::start_game()
+{
+    qDebug() << "START\n";
+
+    listenSock->close();
+    for (int i = 1; i < playersSockets.size(); i++)
+    {
+        connect(playersSockets[i], &QTcpSocket::readyRead, this, &NetworkHost::readyRead);
+        disconnect(playersSockets[i], QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error),
+                        this, QOverload<QAbstractSocket::SocketError>::of(&NetworkHost::handle_pregame_disconnect));
+        connect(playersSockets[i], QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error),
+                     this, QOverload<QAbstractSocket::SocketError>::of(&NetworkHost::handle_ingame_disconnect));
+    }
+
+    emit this_player_turn_start();
+    broadcast_start_message();
+    emit start_multiplayer_game();
 }
 
 template<class T>

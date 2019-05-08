@@ -57,7 +57,7 @@ class NetworkManager: public QObject
 
 protected:
     NetworkManager();
-    ~NetworkManager();
+    virtual ~NetworkManager();
 
     bool isHost;
     int playerNum;
@@ -83,7 +83,7 @@ signals:
     void new_player_connected_sig(QString name);
     void player_disconnected_sig(QString name);
     void start_multiplayer_game();
-    void recv_ingame_cmd_for_execution(uint type, QVector<uint> args);
+    void recv_ingame_cmd_for_execution(const uint type, QVector<uint> args);
     void network_error(const int errorCode);
 };
 

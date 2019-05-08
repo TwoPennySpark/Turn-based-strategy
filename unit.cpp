@@ -20,12 +20,12 @@ extern Game* game;
 
 const defaultUnitStats unitStatsLookupTable[UNIT_TYPE_MAX] =
 {
-    [UNIT_TYPE_WARRIOR] = {"Warrior", ":/unit/img/militia.png", 4, 3, UNIT_ATTACK_TYPE_MELEE, 1, 100},
-    [UNIT_TYPE_ARCHER] = {"Archer", ":/unit/img/archer.png", 4, 4, UNIT_ATTACK_TYPE_RANGED, 3, 250},
+    [UNIT_TYPE_WARRIOR] = {"Warrior", ":/unit/img/militia.png", 4, 2, UNIT_ATTACK_TYPE_MELEE, 1, 100},
+    [UNIT_TYPE_ARCHER] = {"Archer", ":/unit/img/archer.png", 4, 3, UNIT_ATTACK_TYPE_RANGED, 3, 250},
     [UNIT_TYPE_KNIGHT] = {"Knight", ":/unit/img/knight.png", 3, 6, UNIT_ATTACK_TYPE_MELEE, 1, 450},
-    [UNIT_TYPE_MAGE] = {"Mage", ":/unit/img/mage.png", 4, 6, UNIT_ATTACK_TYPE_RANGED, 4, 600},
-    [UNIT_TYPE_WATER_ELEMENTAL] = {"Water Elemental", ":/unit/img/elemental.png", 5, 8, UNIT_ATTACK_TYPE_MELEE, 1, 750},
-    [UNIT_TYPE_CATAPULT] = {"Catapult", ":/unit/img/catapult.png", 3, 10, UNIT_ATTACK_TYPE_RANGED, 5, 800},
+    [UNIT_TYPE_MAGE] = {"Mage", ":/unit/img/mage.png", 4, 5, UNIT_ATTACK_TYPE_RANGED, 4, 600},
+    [UNIT_TYPE_WATER_ELEMENTAL] = {"Water Elemental", ":/unit/img/elemental.png", 5, 7, UNIT_ATTACK_TYPE_MELEE, 1, 750},
+    [UNIT_TYPE_CATAPULT] = {"Catapult", ":/unit/img/catapult.png", 3, 6, UNIT_ATTACK_TYPE_RANGED, 5, 800},
     [UNIT_TYPE_DRAGON] = {"Dragon", ":/unit/img/dragon2.png", 7, 10, UNIT_ATTACK_TYPE_MELEE, 1, 1000},
 };
 

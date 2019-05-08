@@ -131,8 +131,6 @@ void PlayerList::show_player_lost_msg_box(const QString& playerName) const
     QMessageBox msgBox;
     msgBox.setText(QString("Player \"%1\" lost").arg(playerName));
     msgBox.addButton(QMessageBox::Close);
-//    msgBox.move(view->width()/2  - msgBox.width()/2,
-//                view->height()/2 - msgBox.height()/2);
     msgBox.exec();
 }
 
@@ -141,9 +139,5 @@ void PlayerList::show_player_won_msg_box(const QString &playerName) const
     QMessageBox gameOverBox;
     gameOverBox.setText(QString("Player \"%1\" won!").arg(playerName));
     gameOverBox.addButton(QMessageBox::Close);
-//    gameOverBox.move(view->width()/2  - gameOverBox.width()/2,
-//                     view->height()/2 - gameOverBox.height()/2);
     gameOverBox.exec();
-
-//    this->deleteLater();
 }
