@@ -56,6 +56,7 @@ private:
 
 signals:
     void player_lost(int playerIndex);
+    void game_over() const;
 };
 
 #endif // PLAYERLIST_H

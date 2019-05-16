@@ -121,9 +121,9 @@ void PlayerList::delete_player(const player_color playerColor)
         curPlayerIt = &players[players.indexOf(find_player_by_color(curPlayerColor))];
     }
 
+    player_lost(playerColor);
     if (players.size() == 1)
         show_player_won_msg_box((*curPlayerIt)->name);
-    player_lost(playerColor);
 }
 
 void PlayerList::show_player_lost_msg_box(const QString& playerName) const
@@ -140,4 +140,6 @@ void PlayerList::show_player_won_msg_box(const QString &playerName) const
     gameOverBox.setText(QString("Player \"%1\" won!").arg(playerName));
     gameOverBox.addButton(QMessageBox::Close);
     gameOverBox.exec();
+
+    emit game_over();
 }

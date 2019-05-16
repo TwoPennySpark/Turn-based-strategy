@@ -17,13 +17,15 @@ Game::Game()
 
 Game::~Game()
 {
-    delete gameField;
+    if (state != STATE_NONE)
+    {
+        delete gameField;
 
-    delete view;
+        delete view;
 
+        delete playerList;
+    }
     delete mainWidget;
-
-    delete playerList;
 }
 
 PlayerList* Game::get_player_list() const
@@ -132,7 +134,7 @@ void Game::show_multiplayer_settings_menu()
     connect(connectButton, &QPushButton::clicked, [nameEdit, this]()
     {
         QString name = nameEdit->text();
-        if (name.size() >= 4 && name.size() <= 64)
+        if (name.size() >= MIN_NAME_LENGTH && name.size() <= MAX_NAME_LENGTH)
             this->show_connect_menu(name);
     });
 
@@ -140,7 +142,7 @@ void Game::show_multiplayer_settings_menu()
     connect(createServButton, &QPushButton::clicked, [nameEdit, this]()
     {
         QString name = nameEdit->text();
-        if (name.size() >= 4 && name.size() <= 64)
+        if (name.size() >= MIN_NAME_LENGTH && name.size() <= MAX_NAME_LENGTH)
             this->show_create_serv_menu(name);
     });
 
@@ -225,14 +227,14 @@ void Game::show_waiting_for_players_screen(bool isHost)
     QLabel* playersReadyLabel = new QLabel("Players ready:1/4");
     QLabel* playersListLabel = new QLabel("");
 
-    connect(netMng, &NetworkManager::new_player_connected_sig, [playersReadyLabel, playersListLabel, this](QString newName)
+    connect(netMng, &NetworkManager::new_player_connected, [playersReadyLabel, playersListLabel, this](QString newName)
     {
         playerNum++; playerNames.push_back(newName); playersListLabel->text().clear();
         playersReadyLabel->setText(QString("Players ready:%1/%2").arg(QString::number(playerNum), QString::number(PLAYER_MAX)));
         QString playerList; for (auto name: playerNames) playerList += name +"\n"; playersListLabel->setText(playerList);
     });
 
-    connect(netMng, &NetworkManager::player_disconnected_sig, [playersReadyLabel, playersListLabel, this](QString newName)
+    connect(netMng, &NetworkManager::player_disconnected, [playersReadyLabel, playersListLabel, this](QString newName)
     {
         playerNum--; playerNames.removeOne(newName); playersListLabel->text().clear();
         playersReadyLabel->setText(QString("Players ready:%1/%2").arg(QString::number(playerNum), QString::number(PLAYER_MAX)));
@@ -243,7 +245,7 @@ void Game::show_waiting_for_players_screen(bool isHost)
 
     QPushButton* disconnectButton = new QPushButton("Disconnect");
     connect(disconnectButton, &QPushButton::clicked, netMng, &NetworkManager::this_player_disconnected);
-    connect(disconnectButton, &QPushButton::clicked, [this](){this->clear_main_window(); this->roll_back_to_main_menu();});
+    connect(disconnectButton, &QPushButton::clicked, [this](){roll_back_to_main_menu();});
 
     layout->addWidget(playersReadyLabel);
     layout->addWidget(playersListLabel);
@@ -265,7 +267,8 @@ void Game::start_multiplayer()
     view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     playerList = new PlayerList(playerNames);
-    connect(this->playerList, &PlayerList::player_lost, netMng, &NetworkManager::handle_player_loss);
+    connect(playerList, &PlayerList::player_lost, netMng, &NetworkManager::handle_player_loss);
+    connect(playerList, &PlayerList::game_over, [this](){roll_back_to_main_menu();});
     state = STATE_BASIC;
     gameField = new GameField(view);
 }

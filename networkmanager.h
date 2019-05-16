@@ -13,8 +13,7 @@
 #include "ntwrkCmd.pb.h"
 
 const uint MIN_NAME_LENGTH = 4;
-const uint MAX_NAME_LENGTH = 32;
-const uint LENGTH_PREFIX_SIZE = sizeof(int32_t);
+const uint MAX_NAME_LENGTH = 64;
 
 typedef enum pregame_network_cmd_types
 {
@@ -59,29 +58,28 @@ protected:
     NetworkManager();
     virtual ~NetworkManager();
 
-    bool isHost;
-    int playerNum;
-
-    int curPlayerIndex;
     bool isPrefixRead;
-    int frameSize;
-
+    uint frameSize;
     QByteArray data;
 
+    uint playerNum;
+    uint curPlayerIndex;
     QVector<QString> names;
-    QVector<int>lostPlayerIndexes;
+    QVector<uint>lostPlayerIndexes;
+
+    const uint LENGTH_PREFIX_SIZE = sizeof(int32_t);
 
 public slots:
     virtual void initial_setup() = 0;
     virtual void this_player_disconnected() = 0;
     virtual void send_this_player_ingame_cmd(const uint type, const QVector<uint> args) = 0;
-    virtual void handle_player_loss(int index) = 0;
+    virtual void handle_player_loss(uint index) = 0;
 
 signals:
     void this_player_turn_start();
     void network_manager_success(bool isHost);
-    void new_player_connected_sig(QString name);
-    void player_disconnected_sig(QString name);
+    void new_player_connected(QString name);
+    void player_disconnected(QString name);
     void start_multiplayer_game();
     void recv_ingame_cmd_for_execution(const uint type, QVector<uint> args);
     void network_error(const int errorCode);

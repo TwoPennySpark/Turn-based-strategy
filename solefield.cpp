@@ -1,5 +1,4 @@
 #include "solefield.h"
-#include <QDebug>
 #include "unit.h"
 
 SoleField::SoleField()
@@ -84,6 +83,7 @@ void SoleField::setImg(const terrain_type fieldType)
             defenseBonus = 0;
             break;
         case TERRAIN_TYPE_CASTLE:
+        case TERRAIN_TYPE_START_CASTLE:
             img = new QPixmap(":/terrain/img/castle2.png");
             terrainType = TERRAIN_TYPE_CASTLE;
             speedModificator = 1;

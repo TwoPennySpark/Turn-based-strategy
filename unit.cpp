@@ -74,7 +74,7 @@ Unit::Unit(int x, int y, unit_type t, player_color fraction_color): QObject(null
 
     addToGroup(&img);
     add_fraction_rect();
-    addToGroup(&fractionRect);
+    add_inactive_rect();
     addToGroup(&healthText);
     addToGroup(&damageReceivedText);
 
@@ -143,7 +143,7 @@ unit_combat_outcome Unit::attack(const SoleField* defenderField)
     }
     enemy->health -= damageDealt;
 
-    qDebug() << "DAMEGE DEALT:" << damageDealt << " RECIEVED:" << damageReceived << "\n";
+    qDebug() << "DAMAGE DEALT:" << damageDealt << " RECIEVED:" << damageReceived << "\n";
     qDebug() << "HEALTH REMAINING: " << health << "\n";
     qDebug() << "ENEMY HEALTH REMAINING: " << enemy->health << "\n";
 
@@ -176,7 +176,7 @@ unit_combat_outcome Unit::attack(const SoleField* defenderField)
     else
         outcome = UNIT_COMBAT_NONE;
 
-    active = false;
+    set_inactive();
 
     this-> update_displayed_health();
     enemy->update_displayed_health();
@@ -194,7 +194,9 @@ void Unit::add_fraction_rect()
 {
     fractionRect.setRect(0, 0, 16, 16);
     set_fraction_color();
-    fractionRect.setPos(this->x(), this->y());
+    fractionRect.setPos(x(), y());
+    fractionRect.setZValue(1);
+    addToGroup(&fractionRect);
 }
 
 player_color Unit::get_fraction() const
@@ -264,7 +266,7 @@ int Unit::move_unit(qreal destPosCoord_x, qreal destPosCoord_y, int elapsedSpeed
     speedLeft -= elapsedSpeed;
 
     if (speedLeft <= 0)
-        active = false;
+        set_inactive();
 
 //    setPos(toPosCoord_x, toPosCoord_y);
     coord_x = newCoord_x;
@@ -347,6 +349,7 @@ int Unit::depth_search_for_the_shortest_path(int x, int y, int toCoord_x, int to
 }
 
 #define REPLACE_OR_NEW_INSERT(x, y, type) \
+    do { \
     if (possibleMovements.contains(qMakePair(x, y))) { \
         if (possibleMovements.value(qMakePair(x, y)).minElapsedSpeed > fieldsPassed) \
             possibleMovements.insert(qMakePair(x, y), \
@@ -355,7 +358,8 @@ int Unit::depth_search_for_the_shortest_path(int x, int y, int toCoord_x, int to
     else { \
         possibleMovements.insert(qMakePair(x, y), \
             (field_info){fieldsPassed, type}); \
-    }
+    } \
+    } while(0)
 
 void Unit::depth_search_for_possible_moves(QHash<QPair<int, int>, field_info>& possibleMovements, int x, int y, int fieldsPassed, QVector<QPair<int, int>>& path)
 {
@@ -371,17 +375,13 @@ void Unit::depth_search_for_possible_moves(QHash<QPair<int, int>, field_info>& p
         if (game->gameField->fields[x][y].get_unit()->get_fraction() != this->get_fraction())
         { // if it's foe see if it's on one of the neighbour fields
             if (abs(x - coord_x) + abs(y - coord_y) == 1)
-            {
-                REPLACE_OR_NEW_INSERT(x, y, UNIT_POSSIBLE_MOVE_TYPE_ENEMY_IN_ATTACK_RANGE)
-            }
+                REPLACE_OR_NEW_INSERT(x, y, UNIT_POSSIBLE_MOVE_TYPE_ENEMY_IN_ATTACK_RANGE);
         }
         fieldsPassed -= game->gameField->fields[x][y].get_speed_modificator();
         return;
     }
     else
-    {
-        REPLACE_OR_NEW_INSERT(x, y, UNIT_POSSIBLE_MOVE_TYPE_ALLOWED)
-    }
+        REPLACE_OR_NEW_INSERT(x, y, UNIT_POSSIBLE_MOVE_TYPE_ALLOWED);
 
     path.push_back(qMakePair(x, y));
 
@@ -482,11 +482,27 @@ bool Unit::is_active() const
 void Unit::set_active()
 {
     active = true;
+    inactiveRect.hide();
 }
 
 void Unit::set_inactive()
 {
     active = false;
+    inactiveRect.show();
+}
+
+void Unit::add_inactive_rect()
+{
+    QBrush brush;
+    brush.setStyle(Qt::SolidPattern);
+    brush.setColor(QColor(185, 185, 185, 200));
+    inactiveRect.setRect(x(), y(), SOLE_SQUARE_FIELD_SIZE, SOLE_SQUARE_FIELD_SIZE);
+    inactiveRect.setBrush(brush);
+    inactiveRect.setPen(Qt::NoPen);
+    fractionRect.setZValue(0.8);
+    inactiveRect.hide();
+
+    addToGroup(&inactiveRect);
 }
 
 unit_attack_type Unit::get_attack_type() const

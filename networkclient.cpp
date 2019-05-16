@@ -1,10 +1,8 @@
-
 #include "networkclient.h"
 
 NetworkClient::NetworkClient(QString name, QString ip, quint16 port): hostIP(ip), hostPort(port), thisPlayerName(name)
 {
-    isHost = false;
-    thisPlayerIndex = -1;
+    thisPlayerIndex = 0;
 
     isPrefixRead = false;
     frameSize = 0;
@@ -123,14 +121,14 @@ int NetworkClient::parse_pregame_msg()
 
             names.push_back(newName);
             if (newName == thisPlayerName)
-                thisPlayerIndex = names.size()-1;
+                thisPlayerIndex = static_cast<uint>(names.size()-1);
 
-            emit new_player_connected_sig(newName);
+            emit new_player_connected(newName);
             break;
         }
         case PREGAME_NW_CMD_PLAYER_DISCONNECTED:
             qDebug() << "Player disconnected: " << names[static_cast<int>(msg.indexnum())] << "\n";
-            emit player_disconnected_sig(names[static_cast<int>(msg.indexnum())]);
+            emit player_disconnected(names[static_cast<int>(msg.indexnum())]);
             names.remove(static_cast<int>(msg.indexnum()));
             break;
         case PREGAME_NW_CMD_PLAYER_REQ_CHANGE_NAME:
@@ -140,7 +138,7 @@ int NetworkClient::parse_pregame_msg()
         case PREGAME_NW_CMD_START_GAME:
             qDebug() << "START GAME\n";
             parse_func = &NetworkClient::parse_ingame_msg;
-            playerNum = names.size();
+            playerNum = static_cast<uint>(names.size());
             emit start_multiplayer_game();
             break;
         default:
@@ -204,7 +202,7 @@ int NetworkClient::parse_ingame_msg()
         next_turn();
     else if (msg.type() == INGAME_NW_CMD_PLAYER_DISCONNECTED)
     {
-        int removeIndex = static_cast<int>(msg.args(0));
+        uint removeIndex = msg.args(0);
         lostPlayerIndexes.push_back(removeIndex);
         if (removeIndex == curPlayerIndex)
             next_turn();
@@ -276,7 +274,7 @@ void NetworkClient::next_turn()
         emit this_player_turn_start();
 }
 
-void NetworkClient::handle_player_loss(int loserIndex)
+void NetworkClient::handle_player_loss(uint loserIndex)
 {
     lostPlayerIndexes.push_back(loserIndex);
 }

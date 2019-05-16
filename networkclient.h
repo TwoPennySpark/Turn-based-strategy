@@ -17,6 +17,8 @@ public:
     NetworkClient(QString name, QString ip, quint16 port);
     ~NetworkClient() override;
 
+    enum {isHost = 0};
+    void initial_setup() override;
     void connect_to_server();
 
     void readyRead();
@@ -33,20 +35,19 @@ public:
 
     void next_turn();
 
-    void initial_setup() override;
     void this_player_disconnected() override;
     void send_this_player_ingame_cmd(const uint type, const QVector<uint> args) override;
-    void handle_player_loss(int loserIndex) override;
+    void handle_player_loss(uint loserIndex) override;
 
 private:
     QString hostIP;
     quint16 hostPort;
     QTcpSocket* servSock;
 
-    int thisPlayerIndex;
+    uint thisPlayerIndex;
     QString thisPlayerName;
 
-    typedef int (NetworkClient::*parse_arr_func)();
+    using parse_arr_func = int (NetworkClient::*)();
     parse_arr_func parse_func;
 
 public slots:

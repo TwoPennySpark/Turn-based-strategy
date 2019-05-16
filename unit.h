@@ -111,6 +111,7 @@ public:
     bool is_active() const;
     void set_active();
     void set_inactive();
+    void add_inactive_rect();
 
     unit_attack_type get_attack_type() const;
     void get_name(QString& retName) const;
@@ -130,6 +131,7 @@ private:
     QString name;
 
     bool active;
+    QGraphicsRectItem inactiveRect;
 
     int coord_x; // coord on a gamefield array (not position on scene coord)
     int coord_y;

@@ -14,11 +14,13 @@ class NetworkHost: public NetworkManager
     Q_OBJECT
 
 public:
-    NetworkHost(QString name, quint16 hostPort, int numOfPlayers);
+    NetworkHost(QString name, quint16 hostPort, uint numOfPlayers);
     ~NetworkHost() override;
 
+    enum {isHost = 1};
     void initial_setup() override;
     void create_serv();
+
     void send_list_of_names_to_new_player(QTcpSocket *newPlayerSock);
     void broadcast_player_connect(const QString &name);
     void broadcast_player_disconnect(const unsigned int index);
@@ -41,7 +43,7 @@ public:
     void start_game();
 
     void this_player_disconnected() override;
-    void handle_player_loss(int loserIndex) override;
+    void handle_player_loss(uint loserIndex) override;
 
 private:
     quint16 port;
@@ -49,9 +51,10 @@ private:
 
     QVector<QTcpSocket*> playersSockets;
 
-    using parse_bytearray_func = int NetworkHost::*();
-    typedef int (NetworkHost::*parse_arr_func)();
+    using parse_arr_func = int (NetworkHost::*)();
     parse_arr_func parse_func;
+
+    const uint HOST_PLAYER_INDEX = 0;
 
 public slots:
     void handle_new_player();
