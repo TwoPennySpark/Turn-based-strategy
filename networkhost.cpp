@@ -4,7 +4,7 @@
 NetworkHost::NetworkHost(QString name, quint16 hostPort, uint numOfPlayers): port(hostPort)
 {
     playerNum = numOfPlayers;
-    playerNum = 2;
+    playerNum = 3;
     names.reserve(playerNum);
     playersSockets.reserve(playerNum);
 
@@ -54,55 +54,62 @@ void NetworkHost::handle_new_player()
     newName = newPlayerSock->read(MAX_NAME_LENGTH);
     if (names.contains(newName) || static_cast<uint>(newName.size()) < MIN_NAME_LENGTH)
     {// if name is already taken or invalid
-        preGameCmd cmd;
-        QByteArray payloadArr;
-
-        cmd.set_type(PREGAME_NW_CMD_PLAYER_REQ_CHANGE_NAME);
-
-        payloadArr.resize(cmd.ByteSize());
-        cmd.SerializeToArray(payloadArr.data(), payloadArr.size());
-
-        prepend_length_prefix(payloadArr);
-
-        newPlayerSock->write(payloadArr, payloadArr.size());
+        send_name_change_request(newPlayerSock);
         newPlayerSock->close();
     }
     else
     {
-        connect(newPlayerSock, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error),
-                this, QOverload<QAbstractSocket::SocketError>::of(&NetworkHost::handle_pregame_disconnect));
-
-        names.push_back(newName);
-        send_list_of_names_to_new_player(newPlayerSock);
-        broadcast_player_connect(names[names.size()-1]);
-        playersSockets.push_back(newPlayerSock);
-        emit new_player_connected(newName);
-
+        register_new_player(newName, newPlayerSock);
         if (static_cast<uint>(names.size()) == playerNum)
             start_game();
     }
 }
 
-void NetworkHost::send_list_of_names_to_new_player(QTcpSocket *newPlayerSock)
-{// length-prefix framing
-    preGameCmd msg;
+void NetworkHost::send_name_change_request(QTcpSocket *newPlayerSock) const
+{
+    preGameCmd cmd;
     QByteArray payloadArr;
 
-    msg.set_type(PREGAME_NW_CMD_PLAYER_CONNECTED);
+    cmd.set_type(PREGAME_NW_CMD_PLAYER_REQ_CHANGE_NAME);
+
+    serialize_cmd(cmd, payloadArr);
+
+    prepend_length_prefix(payloadArr);
+
+    newPlayerSock->write(payloadArr, payloadArr.size());
+}
+
+void NetworkHost::register_new_player(const QByteArray& newPlayerName, QTcpSocket *newPlayerSock)
+{
+    connect(newPlayerSock, QOverload<QAbstractSocket::SocketError>::of(&QAbstractSocket::error),
+            this, QOverload<QAbstractSocket::SocketError>::of(&NetworkHost::handle_pregame_disconnect));
+
+    names.push_back(newPlayerName);
+    send_list_of_names_to_new_player(newPlayerSock);
+    broadcast_player_connect(names[names.size()-1]);
+    playersSockets.push_back(newPlayerSock);
+    emit new_player_connected(newPlayerName);
+}
+
+void NetworkHost::send_list_of_names_to_new_player(QTcpSocket *newPlayerSock) const
+{// length-prefix framing
+    preGameCmd cmd;
+    QByteArray payloadArr;
+
+    cmd.set_type(PREGAME_NW_CMD_PLAYER_CONNECTED);
 
     for (auto name: names)
     {
-        msg.set_name(name.toUtf8());
+        cmd.set_name(name.toUtf8());
 
-        payloadArr.resize(msg.ByteSize());
-        msg.SerializeToArray(payloadArr.data(), payloadArr.size());
+        serialize_cmd(cmd, payloadArr);
 
         prepend_length_prefix(payloadArr);
 
         newPlayerSock->write(payloadArr, payloadArr.size());
 
         payloadArr.clear();
-        msg.clear_name();
+        cmd.clear_name();
     }
 }
 
@@ -126,11 +133,17 @@ void NetworkHost::start_game()
 }
 
 template<class T>
+void NetworkHost::serialize_cmd(const T &cmd, QByteArray& arr) const
+{
+    arr.resize(cmd.ByteSize());
+    cmd.SerializeToArray(arr.data(), arr.size());
+}
+
+template<class T>
 void NetworkHost::broadcast_cmd(const T& cmd) const
 {// serialize cmd, perform length-prefix framing and send
     QByteArray payloadArr;
-    payloadArr.resize(cmd.ByteSize());
-    cmd.SerializeToArray(payloadArr.data(), payloadArr.size());
+    serialize_cmd(cmd, payloadArr);
 
     broadcast_byte_array(payloadArr);
 }
@@ -334,7 +347,7 @@ void NetworkHost::this_player_disconnected()
     listenSock->close();
 
     std::for_each(playersSockets.begin()+1, playersSockets.end(), [](QTcpSocket* sock){sock->close();});
-    exit(0);
+    QThread::currentThread()->exit(0);
 }
 
 void NetworkHost::handle_player_loss(uint loserIndex)

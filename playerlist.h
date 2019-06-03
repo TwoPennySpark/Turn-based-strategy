@@ -49,10 +49,10 @@ public:
 private:
     const int max_turns_before_losing = 1;
 
-    int playerNum;
-    int curPlayerIndex = 0;
+    uint playerNum;
+    uint curPlayerIndex = 0;
     QVector<player*> players;
-    QVector<player*>::iterator curPlayerIt;
+    QVector<uint>lostPlayerIndexes;
 
 signals:
     void player_lost(int playerIndex);

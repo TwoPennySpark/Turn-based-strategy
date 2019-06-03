@@ -1,22 +1,7 @@
 ﻿#include "unit.h"
-#include <QDebug>
-#include <QQueue>
-#include <QTimer>
 #include "game.h"
 
 extern Game* game;
-
-#define SET_STATS(unitType, defaultName, defaultImage, defaultSpeed, defaultStrength, defaultAttackType, defaultAttackRange) \
-    case unitType: { \
-        name = defaultName; \
-        QPixmap i(defaultImage); \
-        img.setPixmap(i.scaled(QSize(SOLE_SQUARE_FIELD_SIZE, SOLE_SQUARE_FIELD_SIZE), Qt::KeepAspectRatio)); \
-        speed = defaultSpeed; \
-        strength = defaultStrength; \
-        attackType = defaultAttackType; \
-        attackRange = defaultAttackRange; \
-        break; \
-    }
 
 const defaultUnitStats unitStatsLookupTable[UNIT_TYPE_MAX] =
 {
@@ -31,20 +16,6 @@ const defaultUnitStats unitStatsLookupTable[UNIT_TYPE_MAX] =
 
 Unit::Unit(int x, int y, unit_type t, player_color fraction_color): QObject(nullptr), QGraphicsItemGroup(), coord_x(x), coord_y(y), type(t), fraction(fraction_color)
 {
-//    switch (type)
-//    {
-//        SET_STATS(UNIT_TYPE_WARRIOR, "Warrior", ":/unit/img/militia.png", 4, 3, UNIT_ATTACK_TYPE_MELEE, 1)
-//        SET_STATS(UNIT_TYPE_ARCHER, "Archer", ":/unit/img/archer21.png", 4, 3, UNIT_ATTACK_TYPE_RANGED, 2)
-//        SET_STATS(UNIT_TYPE_KNIGHT, "Knight", ":/unit/img/knight.png", 3, 5, UNIT_ATTACK_TYPE_MELEE, 1)
-//        SET_STATS(UNIT_TYPE_CATAPULT, "Catapult", ":/unit/img/catapult.png", 3, 6, UNIT_ATTACK_TYPE_RANGED, 5)
-//        SET_STATS(UNIT_TYPE_WATER_ELEMENTAL, "Water Elemental", ":/unit/img/elemental.png", 5, 6, UNIT_ATTACK_TYPE_MELEE, 1)
-//        SET_STATS(UNIT_TYPE_MAGE, "Mage", ":/unit/img/mage.png", 3, 6, UNIT_ATTACK_TYPE_RANGED, 4)
-//        SET_STATS(UNIT_TYPE_DRAGON, "Dragon", ":/unit/img/dragon.png", 8, 10, UNIT_ATTACK_TYPE_MELEE, 1)
-//        default:
-//            qDebug() << "[-]WHAT?\n";
-//            break;
-//    }
-
     name = unitStatsLookupTable[type].name;
     QPixmap i(unitStatsLookupTable[type].imgPath);
     img.setPixmap(i.scaled(QSize(SOLE_SQUARE_FIELD_SIZE, SOLE_SQUARE_FIELD_SIZE),
@@ -81,7 +52,6 @@ Unit::Unit(int x, int y, unit_type t, player_color fraction_color): QObject(null
     setZValue(0.8);
     setPos(FROM_GAMEFIELD_TO_POS_COORD(coord_x), FROM_GAMEFIELD_TO_POS_COORD(coord_y));
 }
-#undef SET_STATS
 
 Unit::~Unit()
 {
@@ -98,14 +68,14 @@ int Unit::get_coord_y() const
     return coord_y;
 }
 
-unit_combat_outcome Unit::attack(const SoleField* defenderField)
+unit_combat_outcome Unit::attack(const SoleField &defenderField)
 {
     unit_combat_outcome outcome = UNIT_COMBAT_NONE;
     const qreal attackingUnitStrengthBonus = 0.1;
     const int minHealthLeftAfterCombatBothDestroyed = 10;
 
-    Unit *enemy = defenderField->get_unit();
-    int enemyFieldDefenseBonus = defenderField->get_defense_bonus();
+    Unit *enemy = defenderField.get_unit();
+    int enemyFieldDefenseBonus = defenderField.get_defense_bonus();
 
     qreal thisUnitCombatStrength = 0.0;
     qreal thisUnitAttackBonus = 0.0;
@@ -402,7 +372,7 @@ void Unit::depth_search_for_possible_moves(QHash<QPair<int, int>, field_info>& p
 
 void width_search_insert_neighbours(QQueue<QPair<int, int>>& checkQueue, QHash<QPair<int, int>, int>& alreadyChecked, const int x, const int y)
 {
-    if (x+1 <= game->gameField->get_width() && !alreadyChecked.value(qMakePair(x+1, y)))
+    if (x+1 < game->gameField->get_width() && !alreadyChecked.value(qMakePair(x+1, y)))
     {
         checkQueue.enqueue(qMakePair(x+1, y));
         alreadyChecked.insert(qMakePair(x+1, y), 1);
@@ -412,7 +382,7 @@ void width_search_insert_neighbours(QQueue<QPair<int, int>>& checkQueue, QHash<Q
         checkQueue.enqueue(qMakePair(x-1, y));
         alreadyChecked.insert(qMakePair(x-1, y), 1);
     }
-    if (y+1 <= game->gameField->get_height() && !alreadyChecked.value(qMakePair(x, y+1)))
+    if (y+1 < game->gameField->get_height() && !alreadyChecked.value(qMakePair(x, y+1)))
     {
         checkQueue.enqueue(qMakePair(x, y+1));
         alreadyChecked.insert(qMakePair(x, y+1), 1);
@@ -458,10 +428,6 @@ void Unit::calculate_possible_movements(QHash<QPair<int, int>, field_info>& poss
 
     if (attackType == UNIT_ATTACK_TYPE_RANGED)
         width_search_for_enemies_in_attack_range(possibleMovements);
-
-    //    qDebug() << "EL SPEED:\n";
-    //    for (auto it = possibleMovements.begin(); it != possibleMovements.end(); it++)
-    //        qDebug() << it.key().first << ":" << it.key().second << " = " << it.value().minElapsedSpeed << "\n";
 }
 
 void Unit::reset_speed()

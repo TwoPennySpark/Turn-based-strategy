@@ -1,6 +1,5 @@
 #include "game.h"
 #include <QLineEdit>
-#include <QStackedWidget>
 #include <QLabel>
 
 Game::Game()
@@ -293,15 +292,15 @@ void Game::show_console()
         if (list[0] == "next")
             gameField->next_turn();
         else if (list[0] == "move")
-            gameField->move_unit_to_another_field(&gameField->fields[list[1].toInt()][list[2].toInt()],
-                                                  &gameField->fields[list[3].toInt()][list[4].toInt()], list[5].toInt());
+            gameField->move_unit_to_another_field(gameField->fields[list[1].toInt()][list[2].toInt()],
+                                                  gameField->fields[list[3].toInt()][list[4].toInt()], list[5].toInt());
         else if (list[0] == "attack")
-            gameField->one_unit_attack_another(&gameField->fields[list[1].toInt()][list[2].toInt()],
-                                               &gameField->fields[list[3].toInt()][list[4].toInt()], list[5].toInt());
+            gameField->one_unit_attack_another(gameField->fields[list[1].toInt()][list[2].toInt()],
+                                               gameField->fields[list[3].toInt()][list[4].toInt()], list[5].toInt());
         else if (list[0] == "place")
             gameField->place_new_unit_on_gamefield(list[1].toInt(), list[2].toInt(), UNIT_TYPE_DRAGON);
         else if (list[0] == "remove")
-            gameField->remove_unit_from_gamefield(&gameField->fields[list[1].toInt()][list[2].toInt()]);
+            gameField->remove_unit_from_gamefield(gameField->fields[list[1].toInt()][list[2].toInt()]);
         else if (list[0] == "del")
         {
             player_color pc = playerList->get_cur_player_color();
@@ -410,13 +409,13 @@ void Game::execute_multiplayer_ingame_cmd(const uint type, const QVector<uint> a
             break;
         case INGAME_NW_CMD_MOVE_UNIT:
             qDebug() << "INGAME_NW_CMD_MOVE_UNIT";
-            gameField->move_unit_to_another_field(&gameField->fields[args[0]][args[1]],
-                                                  &gameField->fields[args[2]][args[3]], args[4]);
+            gameField->move_unit_to_another_field(gameField->fields[args[0]][args[1]],
+                                                  gameField->fields[args[2]][args[3]], args[4]);
             break;
         case INGAME_NW_CMD_ATTACK_UNIT:
             qDebug() << "INGAME_NW_CMD_ATTACK_UNIT";
-            gameField->one_unit_attack_another(&gameField->fields[args[0]][args[1]],
-                                               &gameField->fields[args[2]][args[3]], args[4]);
+            gameField->one_unit_attack_another(gameField->fields[args[0]][args[1]],
+                                               gameField->fields[args[2]][args[3]], args[4]);
             break;
         case INGAME_NW_CMD_PLACE_UNIT:
             qDebug() << "INGAME_NW_CMD_PLACE_UNIT";
@@ -424,7 +423,7 @@ void Game::execute_multiplayer_ingame_cmd(const uint type, const QVector<uint> a
             break;
         case INGAME_NW_CMD_REMOVE_UNIT:
             qDebug() << "INGAME_NW_CMD_REMOVE_UNIT";
-            gameField->remove_unit_from_gamefield(&gameField->fields[args[0]][args[1]]);
+            gameField->remove_unit_from_gamefield(gameField->fields[args[0]][args[1]]);
             break;
         default:
             qDebug() << "[-]Unknown type:" << type;
@@ -470,7 +469,6 @@ void Game::roll_back_to_main_menu()
     playerNames.clear();
 
     netMng->deleteLater();
-    networkThread->quit();
     networkThread->wait();
     networkThread->deleteLater();
 

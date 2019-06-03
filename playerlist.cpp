@@ -15,8 +15,6 @@ PlayerList::PlayerList(QVector<QString>& playerNames)
     }
 
     curPlayerIndex = 0;
-
-    curPlayerIt = players.begin();
 }
 
 PlayerList::~PlayerList()
@@ -27,9 +25,9 @@ PlayerList::~PlayerList()
 
 void PlayerList::next_turn()
 {
-    curPlayerIt++;
-    if (curPlayerIt == players.end())
-        curPlayerIt = players.begin();
+    curPlayerIndex = (curPlayerIndex + 1) % playerNum;
+    while (lostPlayerIndexes.contains(curPlayerIndex))
+        curPlayerIndex = (curPlayerIndex + 1) % playerNum;
 }
 
 player *PlayerList::find_player_by_color(const player_color playerColor) const
@@ -43,22 +41,22 @@ player *PlayerList::find_player_by_color(const player_color playerColor) const
 
 player_color PlayerList::get_cur_player_color() const
 {
-    return (*curPlayerIt)->color;
+    return players[curPlayerIndex]->color;
 }
 
 int PlayerList::get_cur_player_money() const
 {
-    return (*curPlayerIt)->money;
+    return players[curPlayerIndex]->money;
 }
 
 int PlayerList::get_cur_player_income() const
 {
-    return (*curPlayerIt)->income;
+    return players[curPlayerIndex]->income;
 }
 
 void PlayerList::get_cur_player_name(QString &retName) const
 {
-    retName = (*curPlayerIt)->name;
+    retName = players[curPlayerIndex]->name;
 }
 
 void PlayerList::change_player_income(const player_color playerColor, const int change)
@@ -68,7 +66,7 @@ void PlayerList::change_player_income(const player_color playerColor, const int 
 
 void PlayerList::change_cur_player_money_amount(const int change)
 {
-    (*curPlayerIt)->money += change;
+    players[curPlayerIndex]->money += change;
 }
 
 bool PlayerList::is_player_losing(const player_color playerColor) const
@@ -108,22 +106,15 @@ void PlayerList::delete_player(const player_color playerColor)
 {
     show_player_lost_msg_box(find_player_by_color(playerColor)->name);
 
-    if (playerColor == get_cur_player_color())
-    {
-        curPlayerIt = players.erase(curPlayerIt);
-        if (curPlayerIt == players.end())
-            curPlayerIt = players.begin();
-    }
-    else
-    {
-        player_color curPlayerColor = (*curPlayerIt)->color;
-        players.removeOne(find_player_by_color(playerColor));
-        curPlayerIt = &players[players.indexOf(find_player_by_color(curPlayerColor))];
-    }
+    uint loserIndex = static_cast<uint>(players.indexOf(find_player_by_color(playerColor)));
+    lostPlayerIndexes.push_back(loserIndex);
 
-    player_lost(playerColor);
-    if (players.size() == 1)
-        show_player_won_msg_box((*curPlayerIt)->name);
+    if (playerColor == get_cur_player_color())
+        next_turn();
+
+    emit player_lost(playerColor);
+    if (lostPlayerIndexes.size() == playerNum - 1)
+        show_player_won_msg_box(players[curPlayerIndex]->name);
 }
 
 void PlayerList::show_player_lost_msg_box(const QString& playerName) const

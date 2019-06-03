@@ -9,6 +9,8 @@
 #include <QGraphicsItemGroup>
 #include <QGraphicsTextItem>
 #include <QTimer>
+#include <QDebug>
+#include <QQueue>
 
 typedef enum unit_move_direction
 {
@@ -103,7 +105,7 @@ public:
     player_color get_fraction() const;
     void get_fraction_name(QString &retName);
 
-    unit_combat_outcome attack(const SoleField *defenderField);
+    unit_combat_outcome attack(const SoleField& defenderField);
 
     void reset_speed();
     int get_speed_left() const;

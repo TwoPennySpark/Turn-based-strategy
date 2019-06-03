@@ -287,6 +287,7 @@ void NetworkClient::initial_setup()
 void NetworkClient::this_player_disconnected()
 {
     servSock->close();
+    QThread::currentThread()->exit(0);
 }
 
 void NetworkClient::server_shutdown(QAbstractSocket::SocketError sockError)

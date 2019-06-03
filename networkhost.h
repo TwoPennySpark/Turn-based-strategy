@@ -21,11 +21,15 @@ public:
     void initial_setup() override;
     void create_serv();
 
-    void send_list_of_names_to_new_player(QTcpSocket *newPlayerSock);
+    void send_name_change_request(QTcpSocket* newPlayerSock) const;
+    void register_new_player(const QByteArray &newPlayerName, QTcpSocket *newPlayerSock);
+    void send_list_of_names_to_new_player(QTcpSocket *newPlayerSock) const;
     void broadcast_player_connect(const QString &name);
     void broadcast_player_disconnect(const unsigned int index);
     void broadcast_start_message();
 
+    template <class T>
+    void serialize_cmd(const T& cmd, QByteArray& arr) const;
     template <class T>
     void broadcast_cmd(const T& cmd) const;
     void broadcast_byte_array(QByteArray &payloadArray) const;
