@@ -15,7 +15,6 @@
 #include <QPushButton>
 #include <QMessageBox>
 #include <fstream>
-#include <iostream>
 
 typedef struct field_info
 {
@@ -26,8 +25,8 @@ typedef struct field_info
 
 typedef struct real_estate
 {
-    player_color fraction;
-    QGraphicsRectItem *fractionRect;
+    player_color faction;
+    QGraphicsRectItem *factionRect;
 }real_estate;
 
 class GameField: public QGraphicsScene

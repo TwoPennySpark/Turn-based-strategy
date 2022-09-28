@@ -39,7 +39,7 @@ GameField::~GameField()
         delete rect;
 
     for (auto& el: castles)
-        delete el.fractionRect;
+        delete el.factionRect;
 
     for (int i = 0; i < gameFieldWidth; i++)
         delete[] fields[i];
@@ -183,7 +183,7 @@ void GameField::keyPressEvent(QKeyEvent *event)
             switch (game->get_state())
             {
                 case STATE_BASIC:
-                    if (get_marked_field_unit() && get_marked_field_unit()->get_fraction() == game->get_player_list()->get_cur_player_color() &&
+                    if (get_marked_field_unit() && get_marked_field_unit()->get_faction() == game->get_player_list()->get_cur_player_color() &&
                             get_marked_field_unit()->is_active())
                     {
                         selectedUnitField = get_marked_field();
@@ -191,7 +191,7 @@ void GameField::keyPressEvent(QKeyEvent *event)
                         game->set_state(STATE_UNIT_SELECTED);
                     }
                     else if (get_marked_field_unit() == nullptr && get_marked_field()->get_terrain_type() == TERRAIN_TYPE_CASTLE
-                            && castles.value(mark.get_marked_coord_pair()).fraction == game->get_player_list()->get_cur_player_color())
+                            && castles.value(mark.get_marked_coord_pair()).faction == game->get_player_list()->get_cur_player_color())
                     {
                         show_unit_purchase_scene();
                     }
@@ -231,11 +231,7 @@ void GameField::keyPressEvent(QKeyEvent *event)
                     delete_possible_movements_rects();
                     possibleMovements.clear();
                     game->set_state(STATE_BASIC);
-//                    for (Unit *u: unitsOnGamefield)
-//                    {
-//                        u->set_active();
-//                        u->reset_speed();
-//                    }
+
                     break;
                 case STATE_UNIT_PURCHASE:
                     mark.move(castleSpawnCoord_X, castleSpawnCoord_Y);
@@ -274,7 +270,7 @@ void GameField::keyPressEvent(QKeyEvent *event)
             else if (game->get_state() == STATE_BASIC)
             {
                 if (get_marked_field()->get_terrain_type() == TERRAIN_TYPE_CASTLE &&
-                    castles.value(mark.get_marked_coord_pair()).fraction == game->get_player_list()->get_cur_player_color())
+                    castles.value(mark.get_marked_coord_pair()).faction == game->get_player_list()->get_cur_player_color())
                 {
                     show_unit_purchase_scene();
                 }
@@ -383,15 +379,15 @@ void GameField::move_unit_to_another_field(SoleField& from, SoleField& to, int s
 
         if (to.get_terrain_type() == TERRAIN_TYPE_CASTLE)
         {
-            // if the fraction of the unit being move doesn't
-            // coincide with the fraction of the castle
-            // change castle's fraction
+            // if the faction of the unit being move doesn't
+            // coincide with the faction of the castle
+            // change castle's faction
             int castleCoordX = FROM_POS_TO_GAMEFIELD_COORD(to.x());
             int castleCoordY = FROM_POS_TO_GAMEFIELD_COORD(to.y());
-            if (castles.value(qMakePair(castleCoordX, castleCoordY)).fraction !=
-                              to.get_unit()->get_fraction())
+            if (castles.value(qMakePair(castleCoordX, castleCoordY)).faction !=
+                              to.get_unit()->get_faction())
                 set_new_castle_owner(qMakePair(castleCoordX, castleCoordY),
-                                    to.get_unit()->get_fraction());
+                                    to.get_unit()->get_faction());
         }
 
         update_info_rect();
@@ -432,7 +428,7 @@ void GameField::update_info_rect()
     QString terrain;
     QString unitType;
     QString unitName;
-    QString fractionName;
+    QString factionName;
     QString defenseBonus;
     QString speedModificator;
 
@@ -441,7 +437,7 @@ void GameField::update_info_rect()
     {
         QString castleFractionName;
 
-        switch (castles.value(mark.get_marked_coord_pair()).fraction)
+        switch (castles.value(mark.get_marked_coord_pair()).faction)
         {
             case PLAYER_BLUE:
                 castleFractionName = "blue";
@@ -470,9 +466,9 @@ void GameField::update_info_rect()
 
     if (get_marked_field_unit())
     {
-        get_marked_field_unit()->get_fraction_name(fractionName);
+        get_marked_field_unit()->get_faction_name(factionName);
         get_marked_field_unit()->get_name(unitType);
-        unitType = QString("%1 (%2)").arg(unitType, fractionName);
+        unitType = QString("%1 (%2)").arg(unitType, factionName);
     }
     infoRectText->setPlainText(QString("%1\n\nTerrain: %2\nDefense Bonus: %3%\nSpeed Modificator: %4\n").arg
                                       (unitType, terrain, defenseBonus, speedModificator));
@@ -538,14 +534,12 @@ void GameField::prepare_unit_purchase_scene()
 
     QGraphicsRectItem* unitPurchaseSceneRect = new QGraphicsRectItem(0, 0, 900, 700, unitPurchaseSceneGroup);
     unitPurchaseSceneRect->setBrush(brush);
-//    unitPurchaseSceneGroup->addToGroup(unitPurchaseSceneRect);
 
     QGraphicsRectItem* nameBlock = new QGraphicsRectItem(0, 0, 900, 100, unitPurchaseSceneGroup);
     QGraphicsRectItem* strengthBlock = new QGraphicsRectItem(0, 100, 450, 100, unitPurchaseSceneGroup);
     QGraphicsRectItem* speedBlock = new QGraphicsRectItem(450, 100, 450, 100, unitPurchaseSceneGroup);
     QGraphicsRectItem* attackTypeBlock = new QGraphicsRectItem(0, 200, 450, 100, unitPurchaseSceneGroup);
     QGraphicsRectItem* attackRangeBlock = new QGraphicsRectItem(450, 200, 450, 100, unitPurchaseSceneGroup);
-//    QGraphicsRectItem* descriptionBlock = new QGraphicsRectItem(0, 300, 900, 100, unitPurchaseSceneGroup);
 
     nameString = new QGraphicsTextItem[UNIT_TYPE_MAX];
     costString = new QGraphicsTextItem[UNIT_TYPE_MAX];
@@ -555,7 +549,6 @@ void GameField::prepare_unit_purchase_scene()
     attackRangeString = new QGraphicsTextItem[UNIT_TYPE_MAX];
     descriptionString = new QGraphicsTextItem[UNIT_TYPE_MAX];
 
-//    QGraphicsItemGroup *infoStringsGroup = new QGraphicsItemGroup(unitPurchaseSceneGroup);
     for (int i = 0; i < UNIT_TYPE_MAX; i++)
     {
         unitPurchaseSceneGroup->addToGroup(&nameString[i]);
@@ -566,7 +559,7 @@ void GameField::prepare_unit_purchase_scene()
         unitPurchaseSceneGroup->addToGroup(&attackRangeString[i]);
         unitPurchaseSceneGroup->addToGroup(&descriptionString[i]);
     }
-//    unitPurchaseSceneGroup->addToGroup(infoStringsGroup);
+
     QPixmap i(":/terrain/img/coin.png");
     QGraphicsPixmapItem *coin = new QGraphicsPixmapItem(unitPurchaseSceneGroup);
     coin->setPixmap(i.scaled(QSize(55, 55), Qt::KeepAspectRatio));
@@ -652,12 +645,12 @@ void GameField::set_new_castle_owner(const QPair<int, int>& castleCoord, const p
     real_estate prevRecord;
 
     prevRecord = castles.value(castleCoord);
-    newRecord.fraction = newOwner;
-    newRecord.fractionRect = prevRecord.fractionRect;
+    newRecord.faction = newOwner;
+    newRecord.factionRect = prevRecord.factionRect;
 
     QBrush brush;
     brush.setStyle(Qt::SolidPattern);
-    switch (newRecord.fraction)
+    switch (newRecord.faction)
     {
         case PLAYER_BLUE:
             brush.setColor(Qt::blue);
@@ -675,14 +668,14 @@ void GameField::set_new_castle_owner(const QPair<int, int>& castleCoord, const p
             brush.setColor(Qt::white);
             break;
     }
-    newRecord.fractionRect->setBrush(brush);
+    newRecord.factionRect->setBrush(brush);
 
     castles.insert(castleCoord, newRecord);
 
-    if (prevRecord.fraction != PLAYER_NONE)
+    if (prevRecord.faction != PLAYER_NONE)
     {
-        game->get_player_list()->change_player_income(prevRecord.fraction, -INCOME_CASTLE);
-        check_if_player_has_any_castles_left(prevRecord.fraction);
+        game->get_player_list()->change_player_income(prevRecord.faction, -INCOME_CASTLE);
+        check_if_player_has_any_castles_left(prevRecord.faction);
     }
 
     if (newOwner != PLAYER_NONE)
@@ -697,12 +690,12 @@ void GameField::set_new_castle_owner(const QPair<int, int>& castleCoord, const p
 void GameField::check_if_player_has_any_castles_left(const player_color player)
 {
     for (auto it = qAsConst(castles).begin(); it != qAsConst(castles).end(); it++)
-        if (it.value().fraction == player)
+        if (it.value().faction == player)
             return;
 
     game->get_player_list()->set_player_countdown(player, true);
     for (auto unit: unitsOnGamefield)
-        if (unit->get_fraction() == player)
+        if (unit->get_faction() == player)
             return;
     game->get_player_list()->set_turns_left(player, -1);
 }
@@ -768,12 +761,6 @@ int GameField::parse_map_file()
             set_new_castle_owner(qMakePair(coordX, coordY), PLAYER_NONE);
             addItem(castleFracionRect);
         }
-
-//        QGraphicsTextItem *text  = new QGraphicsTextItem;
-//        text->setPlainText(QString("%1:%2").arg(QString::number(coordX), QString::number(coordY)));
-//        text->setPos(fields[coordX][coordY].x()+10, fields[coordX][coordY].y()+10);
-//        text->setZValue(0.75);
-//        addItem(text);
     }
 
     return 0;
@@ -786,7 +773,7 @@ void GameField::next_turn()
 
     for (Unit *u: unitsOnGamefield)
     {
-        if (u->get_fraction() == pl->get_cur_player_color())
+        if (u->get_faction() == pl->get_cur_player_color())
         {
             u->set_active();
             u->reset_speed();
@@ -825,13 +812,13 @@ int GameField::get_height() const
 void GameField::delete_players_items(player_color playerColor)
 {
     for (auto it = castles.begin(); it != castles.end(); it++)
-        if (it.value().fraction == playerColor)
+        if (it.value().faction == playerColor)
             set_new_castle_owner(it.key(), PLAYER_NONE);
 
     auto it = unitsOnGamefield.begin();
     while (it != unitsOnGamefield.end())
     {
-        if ((*it)->get_fraction() == playerColor)
+        if ((*it)->get_faction() == playerColor)
             remove_unit_from_gamefield(fields[(*it)->get_coord_x()][(*it)->get_coord_y()]);
         else
             it++;
@@ -974,8 +961,6 @@ void GameField::show_cur_player_rect()
 
     curPlayerRectText->setPos(gameFieldView->width()/2  - (curPlayerRectText->boundingRect().width()*3)/2,
                               curPlayerRectText->y());
-//    if (curPlayerRectGroup->isVisible())
-//        qDebug() << gameFieldView->width()/2 << "-" << curPlayerRectText->boundingRect().width()/2*6; //TODO
     curPlayerRectGroup->show();
 
     QTimer timer;

@@ -108,7 +108,6 @@ void Game::start_hot_seat()
     mainWidget->hide();
 
     view = new QGraphicsView();
-//    view->showFullScreen();
     view->setFixedSize(1900, 900);
     view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -256,11 +255,9 @@ void Game::show_waiting_for_players_screen(bool isHost)
 
 void Game::start_multiplayer()
 {
-//    clear_main_window();
     mainWidget->hide();
 
     view = new QGraphicsView();
-//    view->showFullScreen();
     view->setFixedSize(1900, 900);
     view->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     view->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);

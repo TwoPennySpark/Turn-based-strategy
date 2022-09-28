@@ -86,7 +86,7 @@ class Unit: public QObject, public QGraphicsItemGroup
     Q_OBJECT
 
 public:
-    Unit(int x, int y, unit_type t, player_color fraction_color);
+    Unit(int x, int y, unit_type t, player_color faction_color);
     ~Unit();
     int get_coord_x() const;
     int get_coord_y() const;
@@ -101,9 +101,9 @@ public:
     int depth_search_for_the_shortest_path(int x, int y, int toCoord_x, int toCoord_y, int& elapsedSpeed);
     unit_move_direction determine_direction(const int to_x, const int to_y);
 
-    void add_fraction_rect();
-    player_color get_fraction() const;
-    void get_fraction_name(QString &retName);
+    void add_faction_rect();
+    player_color get_faction() const;
+    void get_faction_name(QString &retName);
 
     unit_combat_outcome attack(const SoleField& defenderField);
 
@@ -149,15 +149,15 @@ private:
     QGraphicsTextItem damageReceivedText;
 
     QGraphicsPixmapItem img;
-    QGraphicsRectItem fractionRect;
+    QGraphicsRectItem factionRect;
     QGraphicsTextItem healthText;
 
     unit_type type;
     unit_attack_type attackType;
     int attackRange;
 
-    player_color fraction;
-    void set_fraction_color();
+    player_color faction;
+    void set_faction_color();
 
     int speed;
     int speedLeft;

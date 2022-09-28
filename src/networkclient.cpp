@@ -295,3 +295,4 @@ void NetworkClient::server_shutdown(QAbstractSocket::SocketError sockError)
     servSock->close();
     emit network_error(NETWORK_ERROR_SERVER_SHUTDOWN);
 }
+

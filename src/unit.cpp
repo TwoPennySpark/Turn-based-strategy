@@ -14,7 +14,7 @@ const defaultUnitStats unitStatsLookupTable[UNIT_TYPE_MAX] =
     [UNIT_TYPE_DRAGON] = {"Dragon", ":/unit/img/dragon2.png", 7, 10, UNIT_ATTACK_TYPE_MELEE, 1, 1000},
 };
 
-Unit::Unit(int x, int y, unit_type t, player_color fraction_color): QObject(nullptr), QGraphicsItemGroup(), coord_x(x), coord_y(y), type(t), fraction(fraction_color)
+Unit::Unit(int x, int y, unit_type t, player_color faction_color): QObject(nullptr), QGraphicsItemGroup(), coord_x(x), coord_y(y), type(t), faction(faction_color)
 {
     name = unitStatsLookupTable[type].name;
     QPixmap i(unitStatsLookupTable[type].imgPath);
@@ -44,7 +44,7 @@ Unit::Unit(int x, int y, unit_type t, player_color fraction_color): QObject(null
     connect(&damageReceivedTimer, &QTimer::timeout, this, &Unit::show_damage_received);
 
     addToGroup(&img);
-    add_fraction_rect();
+    add_faction_rect();
     add_inactive_rect();
     addToGroup(&healthText);
     addToGroup(&damageReceivedText);
@@ -160,23 +160,23 @@ unit_combat_outcome Unit::attack(const SoleField &defenderField)
     return outcome;
 }
 
-void Unit::add_fraction_rect()
+void Unit::add_faction_rect()
 {
-    fractionRect.setRect(0, 0, 16, 16);
-    set_fraction_color();
-    fractionRect.setPos(x(), y());
-    fractionRect.setZValue(1);
-    addToGroup(&fractionRect);
+    factionRect.setRect(0, 0, 16, 16);
+    set_faction_color();
+    factionRect.setPos(x(), y());
+    factionRect.setZValue(1);
+    addToGroup(&factionRect);
 }
 
-player_color Unit::get_fraction() const
+player_color Unit::get_faction() const
 {
-    return fraction;
+    return faction;
 }
 
-void Unit::get_fraction_name(QString& retName)
+void Unit::get_faction_name(QString& retName)
 {
-    switch (fraction)
+    switch (faction)
     {
         case PLAYER_BLUE:
             retName = "blue";
@@ -196,12 +196,12 @@ void Unit::get_fraction_name(QString& retName)
     }
 }
 
-void Unit::set_fraction_color()
+void Unit::set_faction_color()
 {
     QBrush brush;
     brush.setStyle(Qt::SolidPattern);
 
-    switch (fraction)
+    switch (faction)
     {
         case PLAYER_BLUE:
             brush.setColor(Qt::blue);
@@ -219,7 +219,7 @@ void Unit::set_fraction_color()
             brush.setColor(Qt::white);
             break;
     }
-    fractionRect.setBrush(brush);
+    factionRect.setBrush(brush);
 }
 
 int Unit::move_unit(qreal destPosCoord_x, qreal destPosCoord_y, int elapsedSpeed)
@@ -342,7 +342,7 @@ void Unit::depth_search_for_possible_moves(QHash<QPair<int, int>, field_info>& p
     if (game->gameField->fields[x][y].get_unit() != nullptr
             && game->gameField->fields[x][y].get_unit() != this)
     { // check whether it's friend or foe
-        if (game->gameField->fields[x][y].get_unit()->get_fraction() != this->get_fraction())
+        if (game->gameField->fields[x][y].get_unit()->get_faction() != this->get_faction())
         { // if it's foe see if it's on one of the neighbour fields
             if (abs(x - coord_x) + abs(y - coord_y) == 1)
                 REPLACE_OR_NEW_INSERT(x, y, UNIT_POSSIBLE_MOVE_TYPE_ENEMY_IN_ATTACK_RANGE);
@@ -407,7 +407,7 @@ void Unit::width_search_for_enemies_in_attack_range(QHash<QPair<int, int>, field
         if (abs(coord_x - pair.first) + abs(coord_y - pair.second) <= this->attackRange)
         {
             if (game->gameField->fields[pair.first][pair.second].get_unit() != nullptr &&
-                game->gameField->fields[pair.first][pair.second].get_unit()->get_fraction() != this->get_fraction())
+                game->gameField->fields[pair.first][pair.second].get_unit()->get_faction() != this->get_faction())
                 possibleMovements.insert(qMakePair(pair.first, pair.second),
                                         (field_info){0, UNIT_POSSIBLE_MOVE_TYPE_ENEMY_IN_ATTACK_RANGE});
 
@@ -465,7 +465,7 @@ void Unit::add_inactive_rect()
     inactiveRect.setRect(x(), y(), SOLE_SQUARE_FIELD_SIZE, SOLE_SQUARE_FIELD_SIZE);
     inactiveRect.setBrush(brush);
     inactiveRect.setPen(Qt::NoPen);
-    fractionRect.setZValue(0.8);
+    factionRect.setZValue(0.8);
     inactiveRect.hide();
 
     addToGroup(&inactiveRect);
